@@ -117,3 +117,82 @@ A Python script with:
 
 All projects are actively under development. Contributions and feedback are welcome.
 
+______________________________________________________________________________________________________________________________________________________________________________________________________________________________
+# 📊 Metrics for Post-Clean Analytics Dashboard (PureView)
+
+**PureView** is a lightweight dashboard designed to visualize key data cleaning metrics, giving teams immediate insight into dataset quality—without reviewing code or logs manually.
+
+The system pulls from post-cleaning script outputs (e.g., duplicates removed, garbage rows, validation success), stores results in a centralized **SQLite** database, and renders interactive dashboards with **Python**.
+
+This approach helps:
+- Save time
+- Ensure consistency
+- Support data quality reporting across teams
+
+---
+
+## 📐 Core Metrics
+
+| **Metric**                     | **Raw Dataset** | **Clean Dataset** | **% of Raw** | **Why It Matters**                                                                 |
+|--------------------------------|------------------|--------------------|--------------|--------------------------------------------------------------------------------------|
+| **Duplicate Count**            | •                | •                  | •            | Verifies deduplication logic (should drop to 0).                                     |
+| **Validation Pass**            | •                | •                  | •            | Confirms how much data survives quality checks.                                      |
+| **Garbage Records (Rejected)** | •                | –                  | •            | Quick view of unusable data volume.                                                  |
+| **Processing Runtime**         | –                | `hh:mm:ss`         | –            | Gauges script efficiency for each dataset.                                           |
+| **Distinct IDs**               | •                | •                  | –            | Ensures no duplicate primary keys remain post-clean.                                 |
+
+> ℹ️ Fill in the “•” programmatically from summary CSVs. Dashes “–” indicate metrics that don’t require before/after splits.
+
+---
+
+## 📈 Recommended Chart Visuals
+
+| **Metric**            | **Chart Type**                              | **Why This Works**                                                                 |
+|-----------------------|---------------------------------------------|-------------------------------------------------------------------------------------|
+| Duplicate Count       | Side-by-side bar chart (Raw vs Clean)       | Clearly shows reduction in duplicates across datasets.                             |
+| Validation Pass       | Stacked bar (Valid vs Invalid) OR Donut     | Visualizes what portion of data passed validation.                                 |
+| Garbage Records       | Donut chart OR Bar chart by dataset         | Emphasizes unusable data and allows for dataset comparison.                        |
+| Processing Runtime    | Horizontal bar OR Line chart over time      | Compares runtime per dataset and trends over multiple cleaning runs.               |
+| Distinct IDs          | Side-by-side bar chart                      | Shows pre/post-cleaning uniqueness to ensure deduplication worked correctly.        |
+
+---
+
+## ✨ Optional Extras (Advanced)
+
+- Tooltip overlays with raw counts & calculated percentages
+- Trend lines to show quality improvement across time
+- Data Quality Score heatmap for benchmarking across datasets
+
+These extras make the dashboard more insightful for both technical and non-technical users.
+
+---
+
+## 🧭 Recommended Dashboard Layout
+
+### 1️⃣ Summary Table View (Top Section)
+A concise overview table displaying:
+- Raw vs Clean counts
+- Percentages
+- Key indicators (runtime, unique IDs)
+
+**Purpose**:  
+Provides a high-level snapshot of cleaning performance.
+
+**Bonus**:  
+Enable CSV or PDF export for audit trails or business reports.
+
+---
+
+### 2️⃣ Visual Insights (Bottom or Side Section)
+Interactive charts tied to each key metric:
+- Garbage % → Donut chart  
+- Runtime → Horizontal bar  
+- Distinct IDs → Side-by-side bar  
+
+**Purpose**:  
+Makes trends, outliers, and improvements immediately visible. Useful in stakeholder presentations or data health dashboards.
+
+---
+
+PureView bridges the gap between raw cleaning logs and actionable insights—transforming technical outputs into a visual story everyone can understand.
+
