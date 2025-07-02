@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern File Analyzer</title>
+    <!-- Using a modern font from Google Fonts for better typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Variables for easy theme management and consistency */
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f7fa;
+            --text-color: #333;
+            --light-text-color: #555;
+            --border-color: #dfe4ea;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --error-bg-color: #f2dede;
+            --error-text-color: #d9534f;
+            --error-border-color: #ebccd1;
+        }
+
+        /* General Body and Layout Styling */
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem; /* Provides space between the upload and results cards */
+        }
+        
+        /* --- Header and Upload Card Styling --- */
+        .upload-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            text-align: center;
+        }
+
+        .upload-card h1 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .upload-card p {
+            color: var(--light-text-color);
+            margin-bottom: 2rem;
+        }
+
+        /* --- Custom File Input Styling --- */
+        .upload-form input[type="file"] {
+            display: none; /* Hide the default, less attractive input */
+        }
+
+        .upload-form .file-label {
+            background-color: var(--secondary-color);
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 3rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+            display: block;
+            margin-bottom: 1.5rem;
+            color: var(--light-text-color);
+        }
+
+        .upload-form .file-label:hover {
+            background-color: #e9ecf0;
+            border-color: var(--primary-color);
+        }
+
+        .upload-form button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .upload-form button:hover {
+            background-color: #357abd;
+            transform: translateY(-2px);
+        }
+
+        /* --- Results "Bubble" / Card Styling --- */
+        .results-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .results-container h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-top: 0;
+            font-weight: 600;
+        }
+
+        .stats-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            /* Creates a responsive grid that fits as many columns as possible (min 200px wide) */
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-list li {
+            background-color: var(--secondary-color);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .stats-list strong {
+            display: block;
+            color: var(--light-text-color);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .column-names {
+            font-size: 0.9em;
+            color: var(--light-text-color);
+            background: var(--secondary-color);
+            padding: 15px;
+            border-radius: 8px;
+            word-wrap: break-word; /* Ensure long column lists wrap neatly */
+        }
+
+        /* --- Table Styling and Horizontal Scroll Functionality --- */
+        .table-wrapper {
+            overflow-x: auto; /* THIS IS THE KEY: adds a horizontal scrollbar only when needed */
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap; /* Prevents text in cells from wrapping, forcing horizontal scroll */
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table thead th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky; /* Makes header stick at the top when scrolling */
+            top: 0;
+        }
+
+        .data-table tbody tr:nth-of-type(even) {
+            background-color: var(--secondary-color);
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #e9ecf0;
+        }
+        
+        /* --- Error Message Styling --- */
+        .error {
+            color: var(--error-text-color);
+            background-color: var(--error-bg-color);
+            border: 1px solid var(--error-border-color);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<main class="main-container">
+    
+    <!-- Upload Card -->
+    <section class="upload-card">
+        <h1>Modern File Analyzer</h1>
+        <p>Upload a CSV or Excel file to see its metadata and a data preview.</p>
+        <form method="post" enctype="multipart/form-data" class="upload-form">
+            <!-- The label is now the styled, clickable area for the hidden file input -->
+            <label for="file-upload" class="file-label">
+                Click to select a file or drag and drop here
+            </label>
+            <input id="file-upload" type="file" name="file" required>
+            <button type="submit">Analyze File</button>
+        </form>
+    </section>
+
+    <!-- Jinja2 template to display an error message only if one exists -->
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <!-- Jinja2 template to display the entire results card only if results exist -->
+    {% if results %}
+    <section class="results-container">
+        <h2>Analysis for: <span style="color: var(--text-color);">{{ results.filename }}</span></h2>
+        
+        <!-- Display key stats in a responsive grid. New items will wrap automatically. -->
+        <ul class="stats-list">
+            <li><strong>Dataset Size</strong> {{ results.filesize_kb }} KB</li>
+            <li><strong>Number of Rows</strong> {{ results.rows }}</li>
+            <li><strong>Number of Columns</strong> {{ results.columns }}</li>
+            <li><strong>Missing Values</strong> {{ results.missing_values }}</li>
+            <li><strong>Duplicate Rows</strong> {{ results.duplicate_rows }}</li>
+            <li><strong>Empty Rows</strong> {{ results.empty_rows }}</li>
+        </ul>
+        
+        <!-- Display column names in a formatted block -->
+        <div>
+            <strong>Column Names</strong>
+            <p class="column-names">{{ results.column_names|join(', ') }}</p>
+        </div>
+        
+        <h2 style="margin-top: 2rem;">Data Preview</h2>
+        
+        <!-- This wrapper makes the table scroll horizontally if it's too wide -->
+        <div class="table-wrapper">
+            <!-- The 'safe' filter is crucial. It tells Jinja to render the HTML from pandas
+                 without escaping special characters like '<' or '>'. -->
+            {{ results.preview|safe }}
+        </div>
+
+    </section>
+    {% endif %}
+    
+</main>
+
+</body>
+</html>
