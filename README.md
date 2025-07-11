@@ -1,198 +1,88 @@
-# PureView Project Suite — AI Data Engineering Tools
 
-This repository contains multiple sub-projects focused on improving data quality, automation, and intelligence gathering for AI-driven data engineering workflows.
+# 📊 Modern File Analyzer
 
----
-
-## 📌 Project 1: PureView
-
-### 🔍 Why We’re Doing This
-
-- **Quality at a Glance**: Instantly verify that every dataset has been cleaned to standard (e.g., duplicates removed, invalid rows dropped).
-- **Time Saver**: Replaces manual script checks with one visual hub.
-- **Reporting Ready**: Centralized metrics feed straight into reports.
+A sleek, browser-based file analysis app built with **Flask** and **Pandas**. Upload a CSV or Excel file and get instant insights—including cleaned name and phone number fields, missing value counts, duplicate detection, and a live data preview.
 
 ---
 
-### ✅ What Success Looks Like
+## 🚀 Features
 
-| **Metric**        | **Raw** | **Cleaned** | **% Change** |
-|-------------------|--------:|------------:|-------------:|
-| Total records     |    •     |      •       |       •       |
-| Duplicate rows    |    •     |      •       |       •       |
-
----
-
-### 🔄 Data Flow Overview
-
-1. **Post-Cleaning Analysis Script**: Generates summary CSV per dataset.
-2. **Lightweight Harvester App**: Ingests summary CSVs into SQLite.
-3. **Python Dashboard**: Reads SQLite to render interactive charts and tables.
-4. *(Optional)* **Nightly Export**: Cron job outputs master CSV for audit or PowerBI/Tableau users.
+- 📂 Upload CSV or Excel files
+- 🔍 Automatically detects and formats:
+  - Name columns (`First`, `Middle`, `Last`)
+  - Phone numbers (standard U.S. formats)
+- 📉 Displays metadata like:
+  - File size
+  - Number of rows & columns
+  - Missing & duplicate values
+  - Column names
+- 🖥️ Beautiful, responsive UI using modern HTML & CSS
+- ⚡ Fast in-browser preview of your dataset
 
 ---
 
-### 🧱 Scope of Work
+## 🛠️ Technologies Used
 
-- Finalize metric list & CSV schema
-- Build harvester + SQLite loader; test with 3 datasets
-- Create dashboard with filters, bar charts, and duplicate metrics
-- User acceptance testing, polish, and documentation hand-off
-
----
-
-## 🔎 Project 2: ReconX
-
-### 🧠 What It Is
-
-**ReconX** is an autonomous tool designed to automate, supplement, and scale the effort of discovering leaked datasets across the web.
+- **Python 3**
+- **Flask**
+- **Pandas**
+- **HTML5 + CSS3 (no external frameworks)**
+- **Jinja2 Templating**
 
 ---
 
-### ⚠️ Why It Matters
+## 🧪 How to Use
 
-- Leaked data often vanishes quickly
-- Manual monitoring is limited in scale
-- ReconX ensures real-time, continuous discovery with full traceability
+1. **Clone this repository:**
 
----
+   ```bash
+   git clone https://github.com/OBrian-bit/DataSnap.git
+   cd DataSnap
 
-### 🛠️ What It Does
 
-- Crawls breach forums and file-sharing hosts using crafted queries
-- Collects and catalogs metadata
-- Logs every decision and action for full auditability
+2. **Install dependencies:**
 
----
+   ```bash
+   pip install flask pandas openpyxl
+   ```
 
-### 🎯 Target Users
+3. **Run the app:**
 
-- Data Engineering Teams
-- Threat Intelligence Teams
+   ```bash
+   python app.py
+   ```
 
----
-
-### 💡 Strategic Benefits
-
-- Automated discovery of leaked data
-- Greater efficiency over manual efforts
-- Transparent governance with structured logs
+4. **Open your browser** and go to `http://127.0.0.1:5000`
 
 ---
 
-## 🧽 Project 3: Scrub AI (Data Cleaning Agent)
+## 📁 File Structure
 
-### 🎯 Goal
-
-Use AI to analyze a dataset sample and generate a Python data-cleaning script by auto-assigning variables and logic based on a provided template.
-
----
-
-### 🧩 Key Features
-
-1. **AI-Led Data Analysis**  
-   - Identifies all columns
-   - Flags key columns for cleaning logic
-
-2. **Semi-Automated User-in-the-Loop Mode**  
-   - Allows users to confirm or override AI-detected variables and logic  
-   - Ideal for ambiguous or inconsistently labeled datasets
-
-3. **Column Typing & Usefulness Classification**  
-   - **Useful Columns**: Contain high-value, interpretable info (e.g., name, email, birthdate, hashes)  
-   - **Non-Useful Columns**: All others
+```
+.
+├── app.py             # Main Flask backend
+├── index.html         # User interface with upload + results
+├── uploads/           # Temporary folder for uploaded files (auto-created)
+```
 
 ---
 
-### 🧾 Expected Output
+## 🧼 Data Cleaning Logic
 
-A Python script with:
-- Pre-assigned variable roles
-- Core logic to clean the dataset
-- Clear, modifiable sections for user review
-
----
-
-### 📁 Status
-
-All projects are actively under development. Contributions and feedback are welcome.
-
-______________________________________________________________________________________________________________________________________________________________________________________________________________________________
-# 📊 Metrics for Post-Clean Analytics Dashboard (PureView)
-
-**PureView** is a lightweight dashboard designed to visualize key data cleaning metrics, giving teams immediate insight into dataset quality—without reviewing code or logs manually.
-
-The system pulls from post-cleaning script outputs (e.g., duplicates removed, garbage rows, validation success), stores results in a centralized **SQLite** database, and renders interactive dashboards with **Python**.
-
-This approach helps:
-- Save time
-- Ensure consistency
-- Support data quality reporting across teams
+* **Name Formatting:** Detects common name fields and splits them into First, Middle, and Last Name.
+* **Phone Numbers:** Cleans and formats 10- or 11-digit phone numbers with optional country code (e.g., `(123) 456-7890`).
+* **Statistics:** Computes dataset metadata like missing values, duplicates, and structural info.
 
 ---
 
-## 📐 Core Metrics
+## 🔒 Security Note
 
-| **Metric**                     | **Raw Dataset** | **Clean Dataset** | **% of Raw** | **Why It Matters**                                                                 |
-|--------------------------------|------------------|--------------------|--------------|--------------------------------------------------------------------------------------|
-| **Duplicate Count**            | •                | •                  | •            | Verifies deduplication logic (should drop to 0).                                     |
-| **Validation Pass**            | •                | •                  | •            | Confirms how much data survives quality checks.                                      |
-| **Garbage Records (Rejected)** | •                | –                  | •            | Quick view of unusable data volume.                                                  |
-| **Processing Runtime**         | –                | `hh:mm:ss`         | –            | Gauges script efficiency for each dataset.                                           |
-| **Distinct IDs**               | •                | •                  | –            | Ensures no duplicate primary keys remain post-clean.                                 |
+This project uses a demo secret key and processes files locally. For production use:
 
-> ℹ️ Fill in the “•” programmatically from summary CSVs. Dashes “–” indicate metrics that don’t require before/after splits.
+* Replace the `SECRET_KEY` in `app.py`
+* Sanitize file inputs
+* Deploy with HTTPS and server hardening
 
 ---
 
-## 📈 Recommended Chart Visuals
-
-| **Metric**            | **Chart Type**                              | **Why This Works**                                                                 |
-|-----------------------|---------------------------------------------|-------------------------------------------------------------------------------------|
-| Duplicate Count       | Side-by-side bar chart (Raw vs Clean)       | Clearly shows reduction in duplicates across datasets.                             |
-| Validation Pass       | Stacked bar (Valid vs Invalid) OR Donut     | Visualizes what portion of data passed validation.                                 |
-| Garbage Records       | Donut chart OR Bar chart by dataset         | Emphasizes unusable data and allows for dataset comparison.                        |
-| Processing Runtime    | Horizontal bar OR Line chart over time      | Compares runtime per dataset and trends over multiple cleaning runs.               |
-| Distinct IDs          | Side-by-side bar chart                      | Shows pre/post-cleaning uniqueness to ensure deduplication worked correctly.        |
-
----
-
-## ✨ Optional Extras (Advanced)
-
-- Tooltip overlays with raw counts & calculated percentages
-- Trend lines to show quality improvement across time
-- Data Quality Score heatmap for benchmarking across datasets
-
-These extras make the dashboard more insightful for both technical and non-technical users.
-
----
-
-## 🧭 Recommended Dashboard Layout
-
-### 1️⃣ Summary Table View (Top Section)
-A concise overview table displaying:
-- Raw vs Clean counts
-- Percentages
-- Key indicators (runtime, unique IDs)
-
-**Purpose**:  
-Provides a high-level snapshot of cleaning performance.
-
-**Bonus**:  
-Enable CSV or PDF export for audit trails or business reports.
-
----
-
-### 2️⃣ Visual Insights (Bottom or Side Section)
-Interactive charts tied to each key metric:
-- Garbage % → Donut chart  
-- Runtime → Horizontal bar  
-- Distinct IDs → Side-by-side bar  
-
-**Purpose**:  
-Makes trends, outliers, and improvements immediately visible. Useful in stakeholder presentations or data health dashboards.
-
----
-
-PureView bridges the gap between raw cleaning logs and actionable insights—transforming technical outputs into a visual story everyone can understand.
 
