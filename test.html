@@ -298,7 +298,7 @@
 <aside id="right-sidebar">
     {% if results %}
         <div class="sidebar-item" id="results-sidebar-tab" title="Drag to Undock">
-            Preview
+            Analysis: {{ results.filename }}
         </div>
     {% endif %}
 </aside>
@@ -334,7 +334,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.94 2 4.53 5.03 4.06 9.02C4.02 9.35 4 9.68 4 10c0 4.42 3.58 8 8 8s8-3.58 8-8c0-3.26-1.95-6.04-4.7-7.26C15.05 2.25 14.68 2 14.29 2H12zm0 2h1.41c.21 0 .4.11.51.29L16 6.33V8h-4V4zM8 4h2v4H8V4zm6 6v4h-4v-4h4z"></path></svg>
             </button>
             <div class="drag-handle" title="Drag this bubble"></div>
-            <h2>Preview</h2>
+            <h2>Analysis for: <span style="color:var(--color-highlight)">{{ results.filename }}</span></h2>
             <div class="results-grid">
                 <div class="stat-card"><strong class="stat-card-label">File Size</strong><span class="stat-card-value">{{ results.filesize_kb }} KB</span></div>
                 <div class="stat-card"><strong class="stat-card-label">Rows</strong><span class="stat-card-value">{{ results.rows }}</span></div>
