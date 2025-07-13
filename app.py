@@ -1,11 +1,7 @@
-# ==============================================================================
-# app.py - Main Flask Application for the Modern File Analyzer
-# ==============================================================================
-
 import os
 import re # Import the regular expression module
 import pandas as pd
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify
 from werkzeug.utils import secure_filename
 
 # --- Configuration ---
@@ -15,9 +11,22 @@ ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
 # --- Flask App Initialization ---
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SECRET_KEY'] = 'a-truly-secret-key-that-should-be-changed'
+app.config['SECRET_KEY'] = 'a-truly-secret-key-that-should-be-changed' # Essential for session management
 
 # --- Helper Functions ---
+
+def slugify(value):
+    """
+    Converts a string to a 'slug'.
+    Now more robust: prevents empty slugs and trims underscores.
+    """
+    value = str(value).strip().lower()
+    value = re.sub(r'[^\w\s-]', '', value) # remove non-alphanumeric
+    value = re.sub(r'[-\s]+', '_', value).strip('_') # replace space/hyphen with _, then trim leading/trailing _
+    if not value: # Handle cases where slug becomes empty (e.g., from "!!!")
+        return "untitled_group"
+    return value
+
 
 def allowed_file(filename):
     """Checks if a filename has one of the allowed extensions."""
@@ -66,42 +75,16 @@ def process_name_column(df):
             return df
     return df
 
-# ==============================================================================
-# REVISED: Helper function to format a single phone number, now handles numeric types
-# ==============================================================================
 def _format_phone_number(phone):
-    """
-    Helper function to format a single phone number string or number.
-    It now correctly handles numbers that were read as floats (e.g., 3365145915.0).
-    """
-    # 1. Handle missing values (like NaN) first, return them as is.
-    if pd.isna(phone):
-        return phone
-    
-    # 2. Convert the input to a string to handle floats, integers, and text.
+    if pd.isna(phone): return phone
     phone_str = str(phone)
-    
-    # 3. If the string representation ends with '.0', slice it off.
-    #    This specifically fixes the float-to-string conversion issue.
-    if phone_str.endswith('.0'):
-        phone_str = phone_str[:-2]
-    
-    # 4. Use regex to strip all remaining non-digit characters.
+    if phone_str.endswith('.0'): phone_str = phone_str[:-2]
     digits = re.sub(r'\D', '', phone_str)
-    
-    # 5. If we have exactly 10 digits, format it.
-    if len(digits) == 10:
-        return f"({digits[0:3]}) {digits[3:6]}-{digits[6:10]}"
-    # 6. If we have 11 digits and it starts with '1', strip '1' and format.
-    elif len(digits) == 11 and digits.startswith('1'):
-        return f"({digits[1:4]}) {digits[4:7]}-{digits[7:11]}"
-    
-    # 7. Fallback: If it's not a standard format, return the original value.
-    #    This prevents messing up international numbers or numbers with extensions.
+    if len(digits) == 10: return f"({digits[0:3]}) {digits[3:6]}-{digits[6:10]}"
+    elif len(digits) == 11 and digits.startswith('1'): return f"({digits[1:4]}) {digits[4:7]}-{digits[7:11]}"
     return phone
 
 def format_phone_columns(df):
-    """Finds columns that look like phone numbers and formats them."""
     potential_phone_cols = ['phone', 'phone number', 'telephone', 'tel', 'contact', 'contact number', 'mobile']
     for col in df.columns:
         if col.lower().replace('_', ' ') in potential_phone_cols:
@@ -113,38 +96,81 @@ def format_phone_columns(df):
 # --- Main Application Route ---
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
+    if 'groups' not in session: session['groups'] = {}
+
     if request.method == 'POST':
+        group_id = request.form.get('group_id')
+        if not group_id: return render_template('index.html', error="Please select a group.", groups=session.get('groups', {}))
         if 'file' not in request.files: return redirect(request.url)
+        
         file = request.files['file']
         if file.filename == '': return redirect(request.url)
+        
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             try:
-                if filename.endswith('.csv'):
-                    df = pd.read_csv(filepath)
-                else:
-                    df = pd.read_excel(filepath)
-                # --- Run All Data Transformations Sequentially ---
+                df = pd.read_csv(filepath) if filename.endswith('.csv') else pd.read_excel(filepath)
                 df = process_name_column(df)
-                df = format_phone_columns(df) # Call the phone formatter
-                # --- Perform All Data Calculations ---
-                file_size = os.path.getsize(filepath)
-                num_rows, num_cols = df.shape
-                column_names = df.columns.tolist()
-                missing_values = int(df.isnull().sum().sum())
-                duplicate_rows = int(df.duplicated().sum())
-                empty_rows = int(df.isnull().all(axis=1).sum())
-                data_preview = df.head().to_html(classes='data-table', index=False, border=0)
-                # --- Assemble all results ---
-                results = {"filename": filename, "filesize_kb": round(file_size / 1024, 2), "rows": num_rows, "columns": num_cols, "column_names": column_names, "missing_values": missing_values, "duplicate_rows": duplicate_rows, "empty_rows": empty_rows, "preview": data_preview}
-                return render_template('index.html', results=results)
+                df = format_phone_columns(df)
+                
+                results = {
+                    "display_name": group_id.replace('_', ' ').title(),
+                    "filename": filename, 
+                    "filesize_kb": round(os.path.getsize(filepath) / 1024, 2), 
+                    "rows": df.shape[0], "columns": df.shape[1], 
+                    "column_names": df.columns.tolist(), 
+                    "missing_values": int(df.isnull().sum().sum()), 
+                    "duplicate_rows": int(df.duplicated().sum()), 
+                    "empty_rows": int(df.isnull().all(axis=1).sum()), 
+                    "preview": df.head().to_html(classes='data-table', index=False, border=0)
+                }
+                session['groups'][group_id] = results
+                session.modified = True
+                return render_template('index.html', groups=session['groups'])
             except Exception as e:
-                error_message = f"Error processing file: {e}"
-                return render_template('index.html', error=error_message)
-    return render_template('index.html', results=None)
+                return render_template('index.html', error=f"Error processing file: {e}", groups=session.get('groups', {}))
+        else:
+            return render_template('index.html', error=f"Unsupported file type. Please upload a .csv, .xlsx, or .xls file.", groups=session.get('groups', {}))
 
+    return render_template('index.html', groups=session.get('groups', {}))
+
+# --- API Routes ---
+@app.route('/rename-group', methods=['POST'])
+def rename_group():
+    if 'groups' not in session: return jsonify({'status': 'error', 'message': 'No groups in session.'}), 400
+    data = request.get_json()
+    old_id, new_display_name = data.get('old_id'), data.get('new_name')
+    if not all([old_id, new_display_name]): return jsonify({'status': 'error', 'message': 'Missing data.'}), 400
+    if old_id not in session['groups']: return jsonify({'status': 'error', 'message': 'Group not found.'}), 404
+
+    new_id = slugify(new_display_name)
+    if new_id == old_id:
+        session['groups'][old_id]['display_name'] = new_display_name
+        session.modified = True
+        return jsonify({'status': 'success', 'new_id': old_id, 'new_display_name': new_display_name})
+    if new_id in session['groups']: return jsonify({'status': 'error', 'message': 'New name already exists.'}), 409
+    
+    group_data = session['groups'].pop(old_id)
+    group_data['display_name'] = new_display_name
+    session['groups'][new_id] = group_data
+    session.modified = True
+    return jsonify({'status': 'success', 'new_id': new_id, 'new_display_name': new_display_name})
+
+@app.route('/delete-group', methods=['POST'])
+def delete_group():
+    if 'groups' not in session: return jsonify({'status': 'error', 'message': 'No groups in session.'}), 400
+    data = request.get_json()
+    group_id = data.get('group_id')
+    if not group_id: return jsonify({'status': 'error', 'message': 'Missing group_id.'}), 400
+    
+    if group_id in session['groups']:
+        session['groups'].pop(group_id)
+        session.modified = True
+        return jsonify({'status': 'success', 'message': 'Group deleted.'})
+    else:
+        return jsonify({'status': 'error', 'message': 'Group not found.'}), 404
 
 # --- Application Entry Point ---
 if __name__ == '__main__':
