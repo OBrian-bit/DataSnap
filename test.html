@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
     /*
@@ -24,12 +25,12 @@
         --color-surface: #ffffff;         /* White bubbles */
         --color-border: #e2e8f0;
         --color-success: #48bb78;
-        /* The --color-bg variable is no longer used for the main body background */
+        --color-danger: #f87171;
         --color-bg: #f7fafc; /* Used for inner elements like stat cards */
-
 
         /* Typography & Spacing */
         --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        --font-mono: 'Fira Code', 'SF Mono', Menlo, Monaco, Consolas, "Courier New", monospace;
         --spacing-2: 0.5rem; --spacing-4: 1rem; --spacing-6: 1.5rem; --spacing-8: 2rem; --spacing-10: 2.5rem;
 
         /* Other */
@@ -41,152 +42,73 @@
 
     body.dark-mode {
         /* Dark Mode Theme: Dark UI elements */
-        --color-highlight: #818cf8; /* Lighter purple for better contrast */
-        --color-dot: #a78bfa;       /* Lighter violet to match */
-        --color-text-primary: #e2e8f0;    /* Light text for dark bubbles */
+        --color-highlight: #818cf8;
+        --color-dot: #a78bfa;
+        --color-text-primary: #e2e8f0;
         --color-text-secondary: #cbd5e1;
-        --color-surface: #2a3145;         /* Dark bubbles */
+        --color-surface: #2a3145;
         --color-border: #4a5568;
-        --color-bg: #212434; /* Used for inner elements like stat cards */
+        --color-bg: #212434;
         --color-success: #68d391;
+        --color-danger: #ef4444;
     }
     
-    /*
-    ==========================================================================
-    GLOBAL & LAYOUT STYLES
-    ==========================================================================
-    */
+    /* --- SPLASH SCREEN STYLES --- */
+    #splash-screen {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(145deg, #4338ca, #2575fc, #212434 80%); background-size: 200% 200%; color: white; display: flex; align-items: center; justify-content: center; text-align: center; z-index: 9999; transition: opacity 0.6s ease-out 0.8s, visibility 0.6s 0.8s; font-family: var(--font-sans); visibility: visible; opacity: 1; overflow: hidden; animation: gradient-flow 15s ease infinite;
+    }
+    #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    @keyframes gradient-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    #transition-wave { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #212434; z-index: 2; clip-path: circle(0% at 50% 50%); transition: clip-path 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
+    .splash-content { opacity: 1; position: relative; z-index: 3; transition: opacity 0.4s ease-out; }
+    #splash-screen.animating .splash-content { opacity: 0; }
+    .splash-icon { width: 100px; height: auto; margin: 0 auto 2rem; transform: scale(0.5); opacity: 0; animation: splash-icon-pop 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards 0.3s, splash-icon-breathe 4s ease-in-out infinite 1.5s; }
+    .splash-icon svg { color: white; }
+    @keyframes splash-icon-pop { to { transform: scale(1); opacity: 1; } }
+    @keyframes splash-icon-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .splash-title { font-size: 2.5rem; font-weight: 700; opacity: 0; transform: translateY(20px); animation: splash-slide-up 0.7s ease-out forwards 0.8s; }
+    .splash-subtitle { font-size: 1.125rem; opacity: 0; transform: translateY(20px); color: #cbd5e1; animation: splash-slide-up 0.7s ease-out forwards 1s; }
+    .splash-button { margin-top: 2.5rem; padding: 0.75rem 2rem; background: var(--color-highlight); color: white; border: none; border-radius: 9999px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; transform: translateY(20px); opacity: 0; animation: splash-slide-up 0.7s ease-out forwards 1.2s; }
+    .splash-button:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 0 15px var(--color-glow); }
+    @keyframes splash-slide-up { to { transform: translateY(0); opacity: 1; } }
+    .splash-particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    .particle { position: absolute; border-radius: 50%; background-color: rgba(255, 255, 255, 0.08); animation: float 25s infinite linear; bottom: -150px; }
+    .particle:nth-child(1) { width: 80px; height: 80px; left: 10%; animation-duration: 20s; } .particle:nth-child(2) { width: 40px; height: 40px; left: 30%; animation-duration: 30s; animation-delay: 5s; } .particle:nth-child(3) { width: 120px; height: 120px; left: 55%; animation-duration: 18s; animation-delay: 2s; } .particle:nth-child(4) { width: 60px; height: 60px; left: 80%; animation-duration: 28s; animation-delay: 8s; } .particle:nth-child(5) { width: 20px; height: 20px; left: 90%; animation-duration: 22s; animation-delay: 12s; }
+    @keyframes float { to { transform: translateY(-120vh) rotate(720deg); opacity: 0; } }
+    
+    /* GLOBAL & LAYOUT */
     *, *::before, *::after { box-sizing: border-box; }
-    
-    body {
-        font-family: var(--font-sans);
-        /* MODIFIED: The background is now permanently dark */
-        background-color: #212434;
-        color: var(--color-text-primary);
-        margin: 0;
-        padding: 0; /* Remove body padding */
-        min-height: 100vh;
-        transition: background-color 0.2s ease-in-out;
-        overflow: hidden;
-
-        /* MODIFIED: The dot grid is now permanently the light-on-dark version */
-        background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-        background-size: 2rem 2rem;
-        background-position: center;
-    }
-    
-    /* Custom Background Style - this will override the dot grid */
-    body.custom-background {
-        background-image: var(--custom-bg-image);
-        background-size: cover;
-        background-position: center center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-
-    .zoom-wrapper {
-        transition: transform 0.3s ease-out;
-        transform-origin: center center;
-        padding: var(--spacing-8); /* Add padding here instead of body */
-        height: 100vh;
-        width: 100vw;
-    }
-    
+    body { font-family: var(--font-sans); background-color: #212434; color: var(--color-text-primary); margin: 0; padding: 0; min-height: 100vh; transition: background-color 0.2s ease-in-out; overflow: hidden; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 2rem 2rem; background-position: center; }
+    body.custom-background { background-image: var(--custom-bg-image); background-size: cover; background-position: center center; background-repeat: no-repeat; background-attachment: fixed; }
+    .zoom-wrapper { transition: transform 0.3s ease-out; transform-origin: center center; padding: var(--spacing-8); height: 100vh; width: 100vw; }
     .is-hidden { display: none !important; }
     
-    /*
-    ==========================================================================
-    COMPONENT STYLES
-    ==========================================================================
-    */
-    /* --- Base Draggable Card (The "Bubble") --- */
-    .card {
-        background: var(--color-surface);
-        border-radius: var(--border-radius-xl);
-        box-shadow: var(--shadow-lg);
-        padding: var(--spacing-8);
-        border: 1px solid var(--color-border);
-        width: 100%;
-        max-width: 560px;
-        position: relative; /* Context for drag handle */
-    }
-    .card.draggable {
-        position: absolute;
-        z-index: 10;
-        top: 20vh;
-        left: 50%;
-        transform: translateX(-50%);
-        transition: opacity 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-    .card.draggable.dragging {
-        opacity: 0.95;
-        z-index: 100;
-        box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
-        transition: none; /* Disable transition for 1-for-1 movement */
-    }
-    
-    body:has(.results-card:not(.is-hidden)) #upload-card {
-        left: 25vw;
-    }
-    
-    /* --- Drag Handle --- */
-    .drag-handle {
-        position: absolute;
-        top: -12px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 24px;
-        height: 24px;
-        /* MODIFIED: Needs to reflect the UI element theme, not the body background */
-        background-color: var(--color-surface);
-        border: 2px solid var(--color-border);
-        border-radius: 50%;
-        cursor: grab;
-        transition: var(--transition);
-        z-index: 1;
-    }
-    .drag-handle:hover {
-        background-color: var(--color-highlight);
-        border-color: var(--color-highlight);
-        box-shadow: 0 0 8px 1px var(--color-glow);
-    }
+    /* COMPONENT STYLES */
+    .card { background: var(--color-surface); border-radius: var(--border-radius-xl); box-shadow: var(--shadow-lg); padding: var(--spacing-8); border: 1px solid var(--color-border); width: 100%; max-width: 560px; position: relative; overflow: hidden; }
+    .card.draggable { position: absolute; z-index: 10; top: 20vh; left: 50%; transform: translateX(-50%); transition: opacity 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+    .card.draggable.dragging { opacity: 0.95; z-index: 100; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); transition: none; }
+    body:has(.results-card:not(.is-hidden)) #upload-card { left: 25vw; }
+    .drag-handle { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; background-color: var(--color-surface); border: 2px solid var(--color-border); border-radius: 50%; cursor: grab; transition: var(--transition); z-index: 10; }
+    .drag-handle:hover { background-color: var(--color-highlight); border-color: var(--color-highlight); box-shadow: 0 0 8px 1px var(--color-glow); }
     .dragging .drag-handle { cursor: grabbing; }
-    
-    /* --- Typography & Hierarchy --- */
     .card-header { text-align: center; margin-bottom: var(--spacing-8); }
     h1 { position: relative; font-size: 2rem; font-weight: 700; margin: 0 0 var(--spacing-2) 0; color: var(--color-highlight); }
     h1::before { content: ''; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; border-radius: 9999px; background-color: var(--color-dot); }
     .card-subtitle { font-size: 1.125rem; color: var(--color-text-secondary); margin: 0; max-width: 45ch; }
-
-    /* --- Upload Form & Drop Zone --- */
     .upload-form { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-6); }
     .file-drop-area { width: 100%; border: 2px dashed var(--color-border); border-radius: var(--border-radius-lg); padding: var(--spacing-8); cursor: pointer; transition: var(--transition); color: var(--color-text-secondary); font-weight: 500; text-align: center; overflow-wrap: break-word; }
     .file-drop-area:hover { border-color: var(--color-glow); color: var(--color-glow); box-shadow: 0 0 10px 1px var(--color-glow); }
     .upload-form input[type="file"] { display: none; }
     .file-success-message { color: var(--color-success); font-weight: 700; }
-    
-    .initial-prompt {
-        color: var(--color-text-secondary);
-        font-style: italic;
-        font-size: 0.95rem;
-        text-align: center;
-        /* Counteract some of the parent `gap` for a cozier feel */
-        margin-top: calc(-1 * var(--spacing-4));
-        margin-bottom: calc(-1 * var(--spacing-2));
-    }
-    .initial-prompt p {
-        margin: 0; /* Remove default paragraph margins */
-    }
-
-    /* --- Circular Analyze Button --- */
+    .form-group { width: 100%; text-align: left; }
+    .form-group label { font-weight: 700; color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-2); display: block; }
+    .form-group select { width: 100%; padding: var(--spacing-2) var(--spacing-4); background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; cursor: pointer; }
     .primary-button { background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border); width: 100px; height: 100px; font-size: 0.8rem; font-weight: 700; border-radius: 9999px; cursor: pointer; transition: var(--transition); display:flex; align-items:center; justify-content:center; text-transform: uppercase; letter-spacing: 0.05em; }
     .primary-button:hover { border-color: var(--color-glow); color: var(--color-glow); transform: scale(1.05); box-shadow: 0 0 10px 2px var(--color-glow); }
-
-    /* --- Round Control Buttons (Menus, Zoom) --- */
+    
+    /* MENUS & SIDEBARS */
     #burger-menu, #sidebar-tab, .zoom-controls, #help-button { transition: var(--transition); }
     #burger-menu:hover, #sidebar-tab:hover, .zoom-controls:hover, #help-button:hover { box-shadow: 0 0 10px 2px var(--color-glow); }
-
-    /* --- Settings Menu & Side Nav (LEFT) --- */
     #burger-menu { position: fixed; top: var(--spacing-4); left: var(--spacing-4); width: 50px; height: 50px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 9999px; cursor: pointer; z-index: 1001; display: flex; align-items: center; justify-content: center; }
     #burger-menu svg { width: 24px; height: 24px; color: var(--color-text-secondary); transition: transform 0.4s ease-in-out; }
     #burger-menu.active svg { transform: rotate(90deg); }
@@ -194,192 +116,114 @@
     #side-menu.open { transform: translateX(0); }
     .menu-items { list-style: none; padding: 0 var(--spacing-4); margin: 0; }
     .menu-items li { padding: var(--spacing-4); display: flex; justify-content: space-between; align-items: center; color: var(--color-text-primary); font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
-    
-    /* --- Right Sidebar & Top Right Controls --- */
-    .top-right-controls {
-        position: fixed;
-        top: var(--spacing-4);
-        right: var(--spacing-4);
-        z-index: 1001;
-        display: flex;
-        gap: var(--spacing-2);
-        transition: right 0.3s ease-in-out; /* For smooth sliding */
-    }
-    body:has(#right-sidebar.open) .top-right-controls {
-        right: calc(320px + var(--spacing-4)); /* Sidebar width + original spacing */
-    }
-
-    #sidebar-tab {
-        width: 50px;
-        height: 50px;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: 9999px;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-    }
+    .top-right-controls { position: fixed; top: var(--spacing-4); right: var(--spacing-4); z-index: 1001; display: flex; gap: var(--spacing-2); transition: right 0.3s ease-in-out; }
+    body:has(#right-sidebar.open) .top-right-controls { right: calc(320px + var(--spacing-4)); }
+    #sidebar-tab { width: 50px; height: 50px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 9999px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
     .tab-line { width: 22px; height: 2px; background-color: var(--color-text-secondary); transition: 0.4s; border-radius: 3px; }
     #sidebar-tab.active .tab-line1 { transform: rotate(45deg) translate(3px, 4px); }
     #sidebar-tab.active .tab-line2 { transform: rotate(-45deg) translate(3px, -4px); }
-    
-    #right-sidebar { position: fixed; top: 0; right: 0; height: 100vh; width: 320px; background-color: var(--color-surface); box-shadow: var(--shadow-lg); border-left: 1px solid var(--color-border); transform: translateX(100%); transition: transform 0.3s ease-in-out; z-index: 1000; padding: 80px var(--spacing-4); color: var(--color-text-primary); }
+    #right-sidebar { position: fixed; top: 0; right: 0; height: 100vh; width: 320px; background-color: var(--color-surface); box-shadow: var(--shadow-lg); border-left: 1px solid var(--color-border); transform: translateX(100%); transition: transform 0.3s ease-in-out; z-index: 1000; padding: 80px var(--spacing-4); color: var(--color-text-primary); overflow-y: auto; }
     #right-sidebar.open { transform: translateX(0); }
-
-    /* Draggable Item in Sidebar */
-    .sidebar-item {
-        background-color: var(--color-bg);
-        padding: var(--spacing-4);
-        border: 1px solid var(--color-border);
-        border-radius: var(--border-radius-lg);
-        cursor: grab;
-        margin-bottom: var(--spacing-4);
-        font-weight: 500;
-        font-size: 0.875rem;
-        overflow-wrap: break-word;
-    }
-    #results-sidebar-tab {
-        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        transform-origin: center;
-    }
-    .sidebar-item:hover {
-        border-color: var(--color-glow);
-        box-shadow: 0 0 8px 1px var(--color-glow);
-    }
-
-    /* --- Dock / Close Buttons on Cards --- */
-    #dock-results-btn, #close-help-btn {
-        position: absolute;
-        top: var(--spacing-4);
-        right: var(--spacing-4);
-        width: 32px;
-        height: 32px;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        color: var(--color-text-secondary);
-        opacity: 0.5;
-        transition: var(--transition);
-        padding: 0;
-    }
-    #dock-results-btn:hover, #close-help-btn:hover {
-        opacity: 1;
-        color: var(--color-highlight);
-    }
-
-    /* --- Theme Controls --- */
+    .sidebar-item { position: relative; background-color: var(--color-bg); padding: var(--spacing-4); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); cursor: grab; margin-bottom: var(--spacing-4); font-weight: 700; font-size: 1rem; overflow-wrap: break-word; transition: opacity 0.3s ease, transform 0.3s ease; transform-origin: center; }
+    .sidebar-item-content { display: flex; flex-direction: column; }
+    .sidebar-item:hover { border-color: var(--color-glow); box-shadow: 0 0 8px 1px var(--color-glow); }
+    .sidebar-item small { font-weight: 400; font-size: 0.8rem; color: var(--color-text-secondary); display: block; margin-top: 4px; }
+    .rename-input { width: 100%; padding: 0; margin: 0; background: transparent; border: none; border-bottom: 2px solid var(--color-highlight); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; font-weight: 700; outline: none; }
+    .delete-group-btn { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); opacity: 0; pointer-events: none; transition: var(--transition); padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .sidebar-item:hover .delete-group-btn { opacity: 0.6; pointer-events: auto; }
+    .delete-group-btn:hover { opacity: 1; color: var(--color-danger); transform: scale(1.1); background-color: rgba(255,0,0,0.1); }
+    .dock-btn, #close-help-btn { position: absolute; top: var(--spacing-4); right: var(--spacing-4); width: 32px; height: 32px; background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); opacity: 0.5; transition: var(--transition); padding: 0; z-index: 5; }
+    .dock-btn:hover, #close-help-btn:hover { opacity: 1; color: var(--color-highlight); }
     .themes-control > span { width: 100%; margin-bottom: var(--spacing-4); }
     .theme-buttons { display: flex; gap: var(--spacing-2); }
     .theme-button { flex-grow: 1; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--spacing-2); border-radius: 0.5rem; cursor: pointer; text-align: center; font-size: 0.875rem; font-weight: 500; transition: var(--transition); }
     .theme-button:hover { background-color: var(--color-border); box-shadow: 0 0 8px 1px var(--color-glow); }
-
-    /* --- Theme Switch Toggle --- */
     .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--color-border); transition: .4s; border-radius: 28px; }
     .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: var(--color-surface); transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: var(--color-highlight); }
     input:checked + .slider:before { transform: translateX(22px); }
-
-    /* --- Results Display --- */
-    .results-card {
-        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        transform-origin: 95% 5%; /* Top-right corner */
-    }
-    .results-card h2, .help-card h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 var(--spacing-6) 0; padding-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-border); overflow-wrap: break-word; }
-    .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-4); }
+    
+    /* RESULTS & DATA VISUALS */
+    .results-card { transition: opacity 0.3s ease, transform 0.3s ease; transform-origin: 95% 5%; }
+    .results-card h2, .help-card h2 { display: flex; align-items: center; gap: var(--spacing-2); font-size: 1.25rem; font-weight: 700; margin: 0 0 var(--spacing-6) 0; padding-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-border); overflow-wrap: break-word; }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-4); position: relative; z-index: 2; }
     .stat-card { background-color: var(--color-bg); border: 1px solid var(--color-border); padding: var(--spacing-4); border-radius: var(--border-radius-lg); }
-    .stat-card-label { font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--spacing-2); display: block; font-weight: 500;}
-    .stat-card-value { font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); overflow-wrap: break-word; }
-    .table-wrapper { overflow-x: auto; margin-top: var(--spacing-6); }
-    .data-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-    .data-table th, .data-table td { padding: var(--spacing-2) var(--spacing-4); text-align: left; border-bottom: 1px solid var(--color-border); font-size: var(--font-size-sm); }
-    .data-table thead th { background-color: var(--color-bg); }
-    .error { color: #f87171; }
+    .stat-card-label { font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--spacing-2); display: flex; align-items: center; font-weight: 500;}
+    .stat-card-value { font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); overflow-wrap: break-word; font-family: var(--font-mono); }
+    .table-wrapper { overflow: auto; margin-top: var(--spacing-6); background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); padding: var(--spacing-2); position: relative; z-index: 2; transition: var(--transition); }
+    .data-table { width: 100%; border-collapse: collapse; white-space: nowrap; font-family: var(--font-mono); }
+    .data-table th, .data-table td { padding: var(--spacing-2) var(--spacing-4); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.875rem; transition: var(--transition); }
+    .data-table th { font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+    .data-table tbody tr:nth-child(odd) { background-color: rgba(128,128,128,0.05); }
+    .table-wrapper p { padding: 0 var(--spacing-4) var(--spacing-2); font-weight: 700; color: var(--color-text-secondary); display:flex; align-items:center; }
+    .table-wrapper::-webkit-scrollbar { width: 8px; height: 8px; }
+    .table-wrapper::-webkit-scrollbar-track { background: transparent; }
+    .table-wrapper::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 10px; }
+    .table-wrapper::-webkit-scrollbar-thumb:hover { background-color: var(--color-text-secondary); }
+    .error { color: var(--color-danger); }
+    .icon { width: 1.1em; height: 1.1em; margin-right: 0.5em; vertical-align: -0.15em; fill: currentColor; }
 
-    /* --- Help Card Content --- */
+    /* DATA WATERMARK */
+    .data-watermark { position: absolute; bottom: 0; right: 0; width: 120px; height: 100px; opacity: 0.08; z-index: 1; pointer-events: none; }
+    body.dark-mode .data-watermark { opacity: 0.15; }
+    .plot-point { fill: var(--color-highlight); animation: scatter-float 8s infinite ease-in-out; }
+    .plot-point:nth-child(2) { animation-delay: -2s; animation-duration: 7s; } .plot-point:nth-child(3) { animation-delay: -5s; animation-duration: 9s; } .plot-point:nth-child(4) { animation-delay: -3.5s; animation-duration: 6s; } .plot-point:nth-child(5) { animation-delay: -6s; animation-duration: 10s; }
+    @keyframes scatter-float { 0%, 100% { transform: translate(10px, 10px); opacity: 0.7; } 25% { transform: translate(50px, 60px); opacity: 0.4; } 50% { transform: translate(90px, 20px); opacity: 1; } 75% { transform: translate(30px, 80px); opacity: 0.6; } }
+
+    /* DARK MODE DATA PREVIEW */
+    body.dark-mode .table-wrapper { background-color: #1a1d2b; border-color: #3a3f58; }
+    body.dark-mode .data-table th { color: var(--color-glow); border-bottom-color: #3a3f58; }
+    body.dark-mode .data-table td { border-color: #2e3247; }
+    body.dark-mode .data-table tbody tr:nth-child(odd) { background-color: rgba(255, 255, 255, 0.03); }
+    body.dark-mode .data-table tbody tr:hover { background-color: rgba(129, 140, 248, 0.15); }
+
+    /* HELP & ONBOARDING */
     .help-card h3 { font-size: 1.1rem; font-weight: 700; margin-top: var(--spacing-6); margin-bottom: var(--spacing-2); color: var(--color-highlight); }
     .help-card p, .help-card li { color: var(--color-text-secondary); line-height: 1.6; font-size: 0.95rem;}
     .help-card ul { padding-left: var(--spacing-6); margin: 0; }
-
-    /* --- UI Controls Container --- */
-    .pan-controls { 
-        position: fixed; bottom: var(--spacing-4); left: var(--spacing-4); right: calc(var(--spacing-4) + 120px); z-index: 100; 
-        display: flex; 
-        align-items: center; 
-    }
-
+    .onboarding-highlight { position: relative; z-index: 2001; box-shadow: 0 0 0 4px var(--color-glow), 0 0 20px 5px var(--color-glow); border-radius: 1.5rem; transition: var(--transition); }
+    .onboarding-highlight.circle { border-radius: 50%; }
+    
+    /* CONTROLS */
+    .pan-controls { position: fixed; bottom: var(--spacing-4); left: var(--spacing-4); right: calc(var(--spacing-4) + 120px); z-index: 100; display: flex; align-items: center; }
     #pan-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; background: var(--color-border); outline: none; border-radius: 10px; transition: background .2s; }
     #pan-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 40px; background: var(--color-surface); border: 1px solid var(--color-border); cursor: ew-resize; border-radius: 10px; box-shadow: var(--shadow-lg); transition: var(--transition); }
     #pan-slider::-moz-range-thumb { width: 20px; height: 40px; background: var(--color-surface); border: 1px solid var(--color-border); cursor: ew-resize; border-radius: 10px; box-shadow: var(--shadow-lg); transition: var(--transition); }
     #pan-slider::-webkit-slider-thumb:hover, #pan-slider::-moz-range-thumb:hover { box-shadow: 0 0 10px 2px var(--color-glow); }
-
     .zoom-controls { position: fixed; bottom: var(--spacing-4); right: var(--spacing-4); display: flex; background-color: var(--color-surface); padding: var(--spacing-2); border-radius: 9999px; border: 1px solid var(--color-border); z-index: 100; cursor: ns-resize; }
     .zoom-indicator { width: 45px; height: 45px; color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; }
     .zoom-indicator svg { width: 24px; height: 24px; }
-
-    #help-button {
-        width: 50px;
-        height: 50px;
-        background-color: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-text-secondary);
-        padding: 0;
-    }
+    #help-button { width: 50px; height: 50px; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); padding: 0; }
     #help-button:hover { border-color: var(--color-glow); }
     #help-button svg { width: 24px; height: 24px; }
-
-    /* --- Onboarding Styles --- */
-    #onboarding-overlay {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        background-color: rgba(0, 0, 0, 0.6);
-        z-index: 2000;
-        backdrop-filter: blur(2px);
-    }
-    .onboarding-highlight {
-        position: relative;
-        z-index: 2001;
-        box-shadow: 0 0 0 4px var(--color-glow), 0 0 20px 5px var(--color-glow);
-        border-radius: 1.5rem; /* Match card radius */
-        transition: var(--transition);
-    }
-    .onboarding-highlight.circle { border-radius: 50%; }
-
-    #onboarding-tooltip {
-        position: absolute;
-        z-index: 2002;
-        background-color: var(--color-surface);
-        color: var(--color-text-primary);
-        padding: var(--spacing-4);
-        border-radius: var(--border-radius-lg);
-        border: 1px solid var(--color-border);
-        box-shadow: var(--shadow-lg);
-        width: 280px;
-    }
+    #onboarding-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 2000; backdrop-filter: blur(2px); }
+    #onboarding-tooltip { position: absolute; z-index: 2002; background-color: var(--color-surface); color: var(--color-text-primary); padding: var(--spacing-4); border-radius: var(--border-radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-lg); width: 280px; }
     #onboarding-tooltip p { margin: 0 0 var(--spacing-4) 0; color: var(--color-text-secondary); line-height: 1.6; }
     .onboarding-buttons { display: flex; justify-content: space-between; align-items: center; }
     .onboarding-buttons button { background-color: var(--color-highlight); color: white; border: none; padding: var(--spacing-2) var(--spacing-4); border-radius: 0.5rem; cursor: pointer; }
     .onboarding-buttons button.skip { background: transparent; color: var(--color-text-secondary); }
 
-    /* --- Dock/Undock Animation --- */
-    .is-fading-out {
-        opacity: 0;
-        transform: scale(0.5);
-        pointer-events: none;
-    }
+    .is-fading-out { opacity: 0; transform: scale(0.5); pointer-events: none; }
     </style>
 </head>
 <body>
+
+<div id="splash-screen">
+    <div id="transition-wave"></div>
+    <div class="splash-particles">
+        <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    </div>
+    <div class="splash-content">
+        <div class="splash-icon">
+            <svg viewBox="0 0 100 90" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M85 0H15C6.717 0 0 6.717 0 15v45c0 8.283 6.717 15 15 15h35v-5H15c-5.523 0-10-4.477-10-10V15c0-5.523 4.477-10 10-10h70c5.523 0 10 4.477 10 10v25h5V15c0-8.283-6.717-15-15-15zM20 20h50v8H20v-8zm0 18h25v8H20v-8zm0 18h50v8H20v-8z"/><path d="M72.5 45C57.302 45 45 57.302 45 72.5S57.302 100 72.5 100 100 87.698 100 72.5 87.698 45 72.5 45zm-2.5 38L58.75 71.75l3.5-3.5L70 76l17.75-17.75 3.5 3.5L70 83z" transform="translate(0 -10)"/></svg>
+        </div>
+        <h1 class="splash-title">File Analyzer</h1>
+        <p class="splash-subtitle">Instantly analyze, clean, and understand your data.</p>
+        <button id="splash-start-btn" class="splash-button">Get Started</button>
+    </div>
+</div>
 
 <button id="burger-menu" title="Open Settings" aria-label="Open Settings">
     <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.69-1.62-0.92L14.4,2.23c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48,0.41L9.18,4.59C8.59,4.82,8.06,5.14,7.56,5.51L5.17,4.55C4.95,4.48,4.7,4.55,4.59,4.75L2.67,8.07 C2.55,8.27,2.61,8.54,2.79,8.68l2.03,1.58C4.8,10.64,4.78,10.96,4.78,11.28c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.24,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.69,1.62,0.92L9.6,21.77 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.42-2.36c0.59-0.23,1.12-0.54,1.62-0.92l2.39,0.96 c0.22,0.08,0.47,0.01,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
@@ -387,41 +231,26 @@
 
 <nav id="side-menu">
     <ul class="menu-items">
-        <li>
-            <span>Dark Mode</span>
-            <label class="switch">
-                <input type="checkbox" id="theme-toggle-switch">
-                <span class="slider"></span>
-            </label>
-        </li>
-        <li class="themes-control">
-            <span>Custom Background</span>
-            <div class="theme-buttons">
-                <label for="bg-upload-input" class="theme-button">Upload</label>
-                <input type="file" id="bg-upload-input" accept="image/*" style="display: none;">
-                <button id="bg-reset-button" class="theme-button">Reset</button>
-            </div>
-        </li>
+        <li><span>Dark Mode</span><label class="switch"><input type="checkbox" id="theme-toggle-switch"><span class="slider"></span></label></li>
+        <li class="themes-control"><span>Custom Background</span><div class="theme-buttons"><label for="bg-upload-input" class="theme-button">Upload</label><input type="file" id="bg-upload-input" accept="image/*" style="display: none;"><button id="bg-reset-button" class="theme-button">Reset</button></div></li>
     </ul>
 </nav>
 
 <div class="top-right-controls">
-    <button id="help-button" title="Help" aria-label="Open help guide">
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
-    </button>
-    <button id="sidebar-tab" title="Toggle Sidebar" aria-label="Toggle Sidebar">
-        <div class="tab-line tab-line1"></div>
-        <div class="tab-line tab-line2"></div>
-    </button>
+    <button id="help-button" title="Help" aria-label="Open help guide"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg></button>
+    <button id="sidebar-tab" title="Toggle Sidebar" aria-label="Toggle Sidebar"><div class="tab-line tab-line1"></div><div class="tab-line tab-line2"></div></button>
 </div>
 
-
 <aside id="right-sidebar">
-    {% if results %}
-        <div class="sidebar-item" id="results-sidebar-tab" title="Drag to Undock" role="button" tabindex="0" aria-label="Undock results preview">
-            Preview
+    {% for group_id, results in groups.items() %}
+    <div class="sidebar-item" id="sidebar-tab-{{ group_id }}" data-group-id="{{ group_id }}" title="Drag to Undock. Right-click to rename." role="button" tabindex="0">
+        <div class="sidebar-item-content">
+            <span class="sidebar-item-name">{{ results.display_name }}</span>
+            <small class="sidebar-item-filename">{{ results.filename }}</small>
         </div>
-    {% endif %}
+        <button class="delete-group-btn" data-group-id="{{ group_id }}" title="Delete Group"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    {% endfor %}
 </aside>
 
 
@@ -429,72 +258,56 @@
     <main class="main-container">
         <section class="card draggable" id="upload-card">
             <div class="drag-handle" title="Drag this bubble"></div>
-            <div class="card-header">
-                <h1>File Analyzer</h1>
-                <p class="card-subtitle">Upload a CSV or Excel file to instantly analyze its structure, metadata, and content.</p>
-            </div>
+            <div class="card-header"><h1>File Analyzer</h1><p class="card-subtitle">Upload a CSV or Excel file to instantly analyze its structure, metadata, and content.</p></div>
             <form method="post" enctype="multipart/form-data" class="upload-form">
-                <label for="file-upload" class="file-drop-area" id="file-label">
-                    <span id="file-label-text">Click or drag & drop file</span>
-                </label>
+                <label for="file-upload" class="file-drop-area" id="file-label"><span id="file-label-text">Click or drag & drop file</span></label>
                 <input id="file-upload" type="file" name="file" required>
-                
-                {% if not results and not error %}
-                <div class="initial-prompt">
-                    <p>No file yet — let’s get analyzing!</p>
-                </div>
-                {% endif %}
-
+                <div class="form-group"><label for="group-select">Assign to Group</label><select name="group_id" id="group-select" required><option value="group_1">Group 1</option><option value="group_2">Group 2</option><option value="group_3">Group 3</option><option value="group_4">Group 4</option><option value="group_5">Group 5</option></select></div>
                 <button type="submit" class="primary-button">Analyze</button>
             </form>
         </section>
 
         {% if error %}
-            <section class="card draggable error" id="error-card">
-                <div class="drag-handle" title="Drag this bubble"></div>
-                {{ error }}
-            </section>
+            <section class="card draggable error" id="error-card"><div class="drag-handle" title="Drag this bubble"></div>{{ error }}</section>
         {% endif %}
 
-        {% if results %}
-        <section class="card draggable results-card is-hidden" id="results-card">
-             <button id="dock-results-btn" title="Dock to sidebar" aria-label="Dock results to sidebar">
-                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.94 2 4.53 5.03 4.06 9.02C4.02 9.35 4 9.68 4 10c0 4.42 3.58 8 8 8s8-3.58 8-8c0-3.26-1.95-6.04-4.7-7.26C15.05 2.25 14.68 2 14.29 2H12zm0 2h1.41c.21 0 .4.11.51.29L16 6.33V8h-4V4zM8 4h2v4H8V4zm6 6v4h-4v-4h4z"></path></svg>
-            </button>
+        {% for group_id, results in groups.items() %}
+        <section class="card draggable results-card" id="results-card-{{ group_id }}" data-group-id="{{ group_id }}">
+            <div class="data-watermark">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none"><circle class="plot-point" r="3" cx="0" cy="0" /><circle class="plot-point" r="2" cx="0" cy="0" /><circle class="plot-point" r="4" cx="0" cy="0" /><circle class="plot-point" r="2.5" cx="0" cy="0" /><circle class="plot-point" r="3" cx="0" cy="0" /></svg>
+            </div>
+            <button class="dock-btn" id="dock-btn-{{ group_id }}" title="Dock to sidebar" aria-label="Dock results to sidebar"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.94 2 4.53 5.03 4.06 9.02C4.02 9.35 4 9.68 4 10c0 4.42 3.58 8 8 8s8-3.58 8-8c0-3.26-1.95-6.04-4.7-7.26C15.05 2.25 14.68 2 14.29 2H12zm0 2h1.41c.21 0 .4.11.51.29L16 6.33V8h-4V4zM8 4h2v4H8V4zm6 6v4h-4v-4h4z"></path></svg></button>
             <div class="drag-handle" title="Drag this bubble"></div>
-            <h2>Preview</h2>
+            <h2 id="results-title-{{ group_id }}">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg>
+                {{ results.display_name }}: Preview
+            </h2>
             <div class="results-grid">
-                <div class="stat-card"><strong class="stat-card-label">File Size</strong><span class="stat-card-value">{{ results.filesize_kb }} KB</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Rows</strong><span class="stat-card-value">{{ results.rows }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Columns</strong><span class="stat-card-value">{{ results.columns }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Missing Values</strong><span class="stat-card-value">{{ results.missing_values }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Duplicate Rows</strong><span class="stat-card-value">{{ results.duplicate_rows }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Empty Rows</strong><span class="stat-card-value">{{ results.empty_rows }}</span></div>
+                <div class="stat-card"><strong class="stat-card-label"><svg class="icon" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" /></svg>File Name</strong><span class="stat-card-value">{{ results.filename }}</span></div>
+                <div class="stat-card"><strong class="stat-card-label"><svg class="icon" viewBox="0 0 24 24"><path d="M18 12H15V10H18M18 15H15V13H18M18 18H15V16H18M20 6V20H13V6M21 4H12A1 1 0 0 0 11 5V21A1 1 0 0 0 12 22H21A1 1 0 0 0 22 21V5A1 1 0 0 0 21 4M7 2H2V16H7V2M9 4V14H0V2A2 2 0 0 1 2 0H7A2 2 0 0 1 9 2Z"/></svg>File Size</strong><span class="stat-card-value">{{ results.filesize_kb }} KB</span></div>
+                <div class="stat-card"><strong class="stat-card-label"><svg class="icon" viewBox="0 0 24 24"><path d="M7,12L12,22L17,12H7M12,5C10.89,5 10,5.89 10,7C10,8.11 10.89,9 12,9C13.11,9 14,8.11 14,7C14,5.89 13.11,5 12,5Z" /></svg>Rows</strong><span class="stat-card-value">{{ results.rows }}</span></div>
+                <div class="stat-card"><strong class="stat-card-label"><svg class="icon" viewBox="0 0 24 24"><path d="M12,7L17,17H7L12,7M10.7,16H13.3L12,13.7L10.7,16M5,2H19C20.1,2 21,2.9 21,4V20C21,21.1 20.1,22 19,22H5C3.9,22 3,21.1 3,20V4C3,2.9 3.9,2 5,2M5,4V20H19V4H5Z" /></svg>Columns</strong><span class="stat-card-value">{{ results.columns }}</span></div>
+                <div class="stat-card"><strong class="stat-card-label"><svg class="icon" viewBox="0 0 24 24"><path d="M19.79,6.28L18.31,7.75C19.23,8.91 19.8,10.4 19.8,12C19.8,12.16 19.79,12.32 19.78,12.48L21.78,13.35C21.93,12.9 22,12.45 22,12C22,9.66 21.12,7.57 19.79,6.28M15.5,12A3.5,3.5 0 0,1 12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12M17.92,19.31L16.22,17.62C15.1,18.45 13.63,19 12,19C9.22,19 6.8,17.47 5.4,15.11L3.5,15.9C4.68,18.8 8.05,21 12,21C14.08,21 16.03,20.27 17.92,19.31M12,3C14.05,3 15.95,3.71 17.82,4.65L16.4,6.9C15.05,6.1 13.58,5.62 12,5.62C9.4,5.62 7.1,6.88 5.73,8.7L3.72,7.85C5.12,5.56 8.3,4 12,4V3Z"/></svg>Missing Values</strong><span class="stat-card-value">{{ results.missing_values }}</span></div>
+                <div class="stat-card"><strong class="stat-card-label"><svg class="icon" viewBox="0 0 24 24"><path d="M11,17H4A2,2 0 0,1 2,15V3A2,2 0 0,1 4,1H14L18,5V12.08C17.37,12.03 16.7,12 16,12C14.86,12 13.79,12.28 12.86,12.78L11,15.65V17M13,8V3H5V15H11.81C11.42,14.09 11.18,13.08 11.18,12C11.18,10.16 11.88,8.47 13,7.12V8M16,14C13.79,14 12,15.79 12,18S13.79,22 16,22 20,20.21 20,18 18.21,14 16,14M16,20V18.5C14.9,18.15 14,17.66 14,17H18C18,17.66 17.1,18.15 16,18.5V20H15V15H21V20H16Z" /></svg>Duplicate Rows</strong><span class="stat-card-value">{{ results.duplicate_rows }}</span></div>
             </div>
             <div class="table-wrapper">
-                <p><strong>Column Names:</strong> {{ results.column_names|join(', ') }}</p>
+                <p><svg class="icon" viewBox="0 0 24 24"><path d="M3,4H21V6H3V4M3,8H13V10H3V8M3,12H21V14H3V12M3,16H13V18H3V16Z" /></svg><strong>Column Names:</strong> {{ results.column_names|join(', ') }}</p>
                 {{ results.preview|safe }}
             </div>
         </section>
-        {% endif %}
+        {% endfor %}
         
         <section class="card draggable help-card is-hidden" id="help-card">
-             <button id="close-help-btn" title="Close Help" aria-label="Close help">
-                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-            </button>
+            <button id="close-help-btn" title="Close Help" aria-label="Close help"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
             <div class="drag-handle" title="Drag this bubble"></div>
             <h2>How To Use This App</h2>
-            <p>This application allows you to quickly analyze CSV and Excel files. It automatically detects and formats common data types like names and phone numbers, and provides key statistics about your file.</p>
-            
-            <h3>The Interface</h3>
-            <p>The main components are movable "bubbles" that you can drag around the screen. Your settings and bubble positions are saved automatically in your browser.</p>
-
+            <p>This application allows you to quickly analyze CSV and Excel files. It automatically detects and formats common data types and provides key statistics about your file.</p>
+            <h3>Using Groups</h3>
+            <p>You can now work with multiple datasets at once. Before uploading, select a Group from the dropdown. The analysis will be saved to that group, creating a new tab in the right sidebar. Hover over a tab to see the delete button. Right-click a tab to rename the group.</p>
             <h3>Interface Controls</h3>
             <ul>
-                <li><strong>Left Settings Menu (Gear Icon):</strong> Click to open the main settings panel where you can toggle Dark Mode or upload a custom background image.</li>
-                <li><strong>Right Sidebar (Tab Icon):</strong> This is the "dock". After analyzing a file, you can click the "dock" icon on the results bubble to store it here. Drag the tab from the sidebar to undock it again.</li>
-                <li><strong>Pan & Zoom:</strong> Use the slider at the bottom to pan left and right. Hover over the magnifying glass and use your mouse wheel to zoom in and out. You can also pan up and down by using your mouse wheel on the background.</li>
-                 <li><strong>This Button (Question Mark):</strong> You found it! Click this to show or hide this help guide.</li>
+                <li><strong>Right Sidebar (Tab Icon):</strong> This is the "dock". It now holds tabs for all your active groups. Drag a tab from the sidebar to undock its bubble.</li>
+                <li><strong>Pan & Zoom:</strong> Use the slider at the bottom to pan left and right. Hover over the magnifying glass and use your mouse wheel to zoom in and out.</li>
             </ul>
         </section>
     </main>
@@ -505,12 +318,9 @@
 </div>
 
 <div class="zoom-controls" id="zoom-controls" role="group" aria-label="Zoom controls. Use mouse wheel to zoom." tabindex="0">
-    <div class="zoom-indicator">
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-    </div>
+    <div class="zoom-indicator"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
 </div>
 
-<!-- Onboarding Elements -->
 <div id="onboarding-overlay" class="is-hidden"></div>
 <div id="onboarding-tooltip" class="is-hidden">
     <p id="onboarding-text"></p>
@@ -524,354 +334,258 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const body = document.body;
+        const splashScreen = document.getElementById('splash-screen');
 
-        // --- THEME SWITCHING ---
+        // --- SPLASH SCREEN FIX ---
+        if (sessionStorage.getItem('splashSeen') === 'true') {
+            if (splashScreen) {
+                splashScreen.style.display = 'none';
+            }
+        }
+        
+        // --- SPLASH SCREEN LOGIC ---
+        const startBtn = document.getElementById('splash-start-btn');
+        const wave = document.getElementById('transition-wave');
+
+        if (startBtn && splashScreen && wave) {
+            startBtn.addEventListener('click', (e) => {
+                sessionStorage.setItem('splashSeen', 'true');
+                const rect = startBtn.getBoundingClientRect();
+                const x = (rect.left + rect.width / 2) / window.innerWidth * 100;
+                const y = (rect.top + rect.height / 2) / window.innerHeight * 100;
+                wave.style.clipPath = `circle(150% at ${x}% ${y}%)`;
+                splashScreen.classList.add('animating');
+                setTimeout(() => {
+                    splashScreen.classList.add('hidden');
+                }, 900);
+            });
+        }
+
+        // --- THEME & BG (with Auto-Detection) ---
         const themeSwitch = document.getElementById('theme-toggle-switch');
         const themeKey = 'themePreference';
-        // MODIFIED: The toggle function now only switches UI element themes. The background is static.
-        const toggleTheme = () => { 
-            body.classList.toggle('dark-mode', themeSwitch.checked); 
-            localStorage.setItem(themeKey, themeSwitch.checked ? 'dark' : 'light'); 
-        };
-        themeSwitch.addEventListener('change', toggleTheme);
-        const applySavedTheme = () => { 
-            const savedTheme = localStorage.getItem(themeKey); 
-            // Default to dark UI if nothing is saved to match the old behavior where dark was the default
-            themeSwitch.checked = savedTheme !== 'light'; 
-            toggleTheme(); 
-        };
-        // applySavedTheme(); // We call this after custom BG logic now.
+
+        function applyAndSaveTheme(isDarkMode) {
+             body.classList.toggle('dark-mode', isDarkMode);
+             // When the user *manually* clicks the toggle, we save their preference.
+             themeSwitch.addEventListener('change', () => {
+                localStorage.setItem(themeKey, themeSwitch.checked ? 'dark' : 'light');
+                body.classList.toggle('dark-mode', themeSwitch.checked);
+             }, { once: true }); // Use { once: true } to avoid re-adding the listener
+        }
         
-        // --- CUSTOM BACKGROUND ---
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem(themeKey);
+            let useDarkMode;
+
+            if (savedTheme) {
+                // 1. User has a saved preference, so we use that.
+                useDarkMode = (savedTheme === 'dark');
+            } else {
+                // 2. No saved preference, so we check the system preference.
+                useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+
+            // Set the toggle and apply the class
+            themeSwitch.checked = useDarkMode;
+            body.classList.toggle('dark-mode', useDarkMode);
+
+            // Listen for manual toggles to save the preference
+            themeSwitch.addEventListener('change', () => {
+                localStorage.setItem(themeKey, themeSwitch.checked ? 'dark' : 'light');
+                body.classList.toggle('dark-mode', themeSwitch.checked);
+            });
+
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                // Only update if the user has NOT made a manual choice
+                if (!localStorage.getItem(themeKey)) {
+                    themeSwitch.checked = e.matches;
+                    body.classList.toggle('dark-mode', e.matches);
+                }
+            });
+        }
+        
         const bgUploadInput = document.getElementById('bg-upload-input');
         const bgResetBtn = document.getElementById('bg-reset-button');
         const bgStorageKey = 'customBgImage';
-
-        const applySavedBackground = () => {
-            const savedBg = localStorage.getItem(bgStorageKey);
-            if (savedBg) {
-                document.documentElement.style.setProperty('--custom-bg-image', `url(${savedBg})`);
-                body.classList.add('custom-background');
-            }
-        };
-        bgUploadInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                localStorage.setItem(bgStorageKey, e.target.result);
-                applySavedBackground();
-            };
-            reader.readAsDataURL(file);
-        });
-        bgResetBtn.addEventListener('click', () => {
-            localStorage.removeItem(bgStorageKey);
-            document.documentElement.style.removeProperty('--custom-bg-image');
-            body.classList.remove('custom-background');
-        });
-        applySavedBackground();
-        applySavedTheme(); // Run theme logic after BG logic
-
-
-        // --- LEFT SETTINGS MENU ---
-        const burger = document.getElementById('burger-menu');
-        const sideMenu = document.getElementById('side-menu');
-        burger.addEventListener('click', () => { burger.classList.toggle('active'); sideMenu.classList.toggle('open'); });
+        const applySavedBackground = () => { const savedBg = localStorage.getItem(bgStorageKey); if (savedBg) { document.documentElement.style.setProperty('--custom-bg-image', `url(${savedBg})`); body.classList.add('custom-background'); } };
+        bgUploadInput.addEventListener('change', (event) => { const file = event.target.files[0]; if (!file || !file.type.startsWith('image/')) return; const reader = new FileReader(); reader.onload = (e) => { localStorage.setItem(bgStorageKey, e.target.result); applySavedBackground(); }; reader.readAsDataURL(file); });
+        bgResetBtn.addEventListener('click', () => { localStorage.removeItem(bgStorageKey); document.documentElement.style.removeProperty('--custom-bg-image'); body.classList.remove('custom-background'); });
         
-        // --- RIGHT SIDEBAR ---
-        const sidebarTab = document.getElementById('sidebar-tab');
-        const rightSidebar = document.getElementById('right-sidebar');
-        sidebarTab.addEventListener('click', () => { sidebarTab.classList.toggle('active'); rightSidebar.classList.toggle('open'); });
+        initializeTheme();
+        applySavedBackground();
 
-        // --- HELP BUBBLE ---
-        const helpButton = document.getElementById('help-button');
-        const helpCard = document.getElementById('help-card');
-        const closeHelpButton = document.getElementById('close-help-btn');
-        if(helpButton && helpCard && closeHelpButton) {
-            helpButton.addEventListener('click', () => {
-                helpCard.classList.toggle('is-hidden');
-            });
-            closeHelpButton.addEventListener('click', () => {
-                helpCard.classList.add('is-hidden');
-            });
-        }
+
+        // --- MENUS & HELP ---
+        document.getElementById('burger-menu').addEventListener('click', () => { document.getElementById('burger-menu').classList.toggle('active'); document.getElementById('side-menu').classList.toggle('open'); });
+        document.getElementById('sidebar-tab').addEventListener('click', () => { document.getElementById('sidebar-tab').classList.toggle('active'); document.getElementById('right-sidebar').classList.toggle('open'); });
+        document.getElementById('help-button').addEventListener('click', () => document.getElementById('help-card').classList.toggle('is-hidden'));
+        document.getElementById('close-help-btn').addEventListener('click', () => document.getElementById('help-card').classList.add('is-hidden'));
 
         // --- FILE UPLOAD UI ---
         const fileInput = document.getElementById('file-upload');
-        if (fileInput) {
-            const fileLabelText = document.getElementById('file-label-text');
-            const originalLabelText = fileLabelText.innerHTML;
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length > 0) { fileLabelText.innerHTML = `<span class="file-success-message">✅ ${fileInput.files[0].name}</span>`; } 
-                else { fileLabelText.innerHTML = originalLabelText; }
-            });
-        }
+        if (fileInput) { const fileLabelText = document.getElementById('file-label-text'); const originalLabelText = fileLabelText.innerHTML; fileInput.addEventListener('change', () => { fileLabelText.innerHTML = fileInput.files.length > 0 ? `<span class="file-success-message">✅ ${fileInput.files[0].name}</span>` : originalLabelText; });}
         
-        // --- PAN & ZOOM LOGIC ---
+        // --- PAN & ZOOM ---
         const zoomWrapper = document.getElementById('zoom-wrapper');
         const zoomControls = document.getElementById('zoom-controls');
         const panSlider = document.getElementById('pan-slider');
-        const maxZoom = 1.2, minZoom = 0.5, zoomStep = 0.05;
-        const panStep = 2;
         let currentZoom = 1.0, currentPan = 0, currentVerticalPan = 0;
-
-        const updateWrapperTransform = () => {
-            zoomWrapper.style.transform = `scale(${currentZoom}) translateX(${currentPan}vw) translateY(${currentVerticalPan}vh)`;
-        };
-        zoomControls.addEventListener('wheel', (event) => {
-            event.preventDefault();
-            if (event.deltaY < 0) { currentZoom = Math.min(maxZoom, parseFloat((currentZoom + zoomStep).toFixed(2))); } 
-            else { currentZoom = Math.max(minZoom, parseFloat((currentZoom - zoomStep).toFixed(2))); }
-            updateWrapperTransform();
-        }, { passive: false });
-        if (panSlider) {
-            panSlider.addEventListener('input', () => {
-                currentPan = panSlider.value;
-                updateWrapperTransform();
-            });
-        }
-        document.addEventListener('wheel', (event) => {
-            if (event.target.closest('#zoom-controls, #pan-slider, #side-menu, #right-sidebar, .card')) return;
-            event.preventDefault();
-            if (event.deltaY > 0) { currentVerticalPan -= panStep; } else { currentVerticalPan += panStep; }
-            currentVerticalPan = Math.max(-50, Math.min(50, currentVerticalPan));
-            updateWrapperTransform();
-        }, { passive: false });
+        const updateWrapperTransform = () => { zoomWrapper.style.transform = `scale(${currentZoom}) translateX(${currentPan}vw) translateY(${currentVerticalPan}vh)`; };
+        zoomControls.addEventListener('wheel', (e) => { e.preventDefault(); if (e.deltaY < 0) { currentZoom = Math.min(1.2, parseFloat((currentZoom + 0.05).toFixed(2))); } else { currentZoom = Math.max(0.5, parseFloat((currentZoom - 0.05).toFixed(2))); } updateWrapperTransform(); }, { passive: false });
+        panSlider.addEventListener('input', () => { currentPan = panSlider.value; updateWrapperTransform(); });
+        document.addEventListener('wheel', (e) => { if (e.target.closest('#zoom-controls, #pan-slider, #side-menu, #right-sidebar, .card')) return; e.preventDefault(); if (e.deltaY > 0) { currentVerticalPan -= 2; } else { currentVerticalPan += 2; } currentVerticalPan = Math.max(-50, Math.min(50, currentVerticalPan)); updateWrapperTransform(); }, { passive: false });
         updateWrapperTransform();
 
-        // --- BUBBLE & TAB MANAGEMENT ---
-        const resultsCard = document.getElementById('results-card');
-        const resultsTab = document.getElementById('results-sidebar-tab');
-        const dockBtn = document.getElementById('dock-results-btn');
-        const resultsStateKey = 'resultsCardState';
+        // --- GROUP STATE & LOCALSTORAGE MANAGEMENT ---
+        const groupStatesKey = 'groupCardStates';
+        function getGroupStates() { try { return JSON.parse(localStorage.getItem(groupStatesKey)) || {}; } catch { return {}; } }
+        function setGroupState(groupId, state) { const states = getGroupStates(); states[groupId] = state; localStorage.setItem(groupStatesKey, JSON.stringify(states)); }
+        function removeGroupState(groupId) { const states = getGroupStates(); delete states[groupId]; localStorage.setItem(groupStatesKey, JSON.stringify(states)); }
+        function renameGroupState(oldId, newId) { const states = getGroupStates(); if (states[oldId]) { states[newId] = states[oldId]; delete states[oldId]; localStorage.setItem(groupStatesKey, JSON.stringify(states)); } }
 
-        function initializeResultsState() {
-            if (!resultsCard) return;
-            const state = localStorage.getItem(resultsStateKey);
-            if (state === 'undocked') {
-                resultsCard.classList.remove('is-hidden');
-                if(resultsTab) resultsTab.classList.add('is-hidden');
-            } else { // Default to docked
-                resultsCard.classList.add('is-hidden');
-                if(resultsTab) resultsTab.classList.remove('is-hidden');
-            }
+        function initializeGroupStates() {
+            const states = getGroupStates();
+            document.querySelectorAll('.results-card').forEach(card => {
+                const groupId = card.dataset.groupId;
+                const tab = document.getElementById(`sidebar-tab-${groupId}`);
+                if (!tab) return;
+                const state = states[groupId] || 'docked';
+                if (state === 'undocked') { card.classList.remove('is-hidden'); tab.classList.add('is-hidden'); } 
+                else { card.classList.add('is-hidden'); tab.classList.remove('is-hidden'); }
+            });
         }
 
-        function makeTabDraggable(tabElement, targetBubble) {
+        // --- DELETE GROUP LOGIC ---
+        function setupDeleteControls(button) {
+            button.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const groupId = button.dataset.groupId;
+                if (!confirm(`Are you sure you want to delete "${groupId.replace(/_/g, ' ')}"?`)) return;
+                try {
+                    const response = await fetch('/delete-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group_id: groupId }) });
+                    if (response.ok) {
+                        document.getElementById(`sidebar-tab-${groupId}`)?.remove();
+                        document.getElementById(`results-card-${groupId}`)?.remove();
+                        removeGroupState(groupId);
+                        localStorage.removeItem(`card-pos-results-card-${groupId}`);
+                    } else { const data = await response.json(); alert(`Error: ${data.message || 'Could not delete group.'}`); }
+                } catch (error) { alert('An unexpected network error occurred.'); }
+            });
+        }
+
+        // --- RENAME GROUP LOGIC ---
+        function setupRenameControls(tab) {
+            tab.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                const contentDiv = tab.querySelector('.sidebar-item-content');
+                const nameSpan = tab.querySelector('.sidebar-item-name');
+                const oldDisplayName = nameSpan.textContent;
+                const oldGroupId = tab.dataset.groupId;
+                const input = document.createElement('input');
+                input.type = 'text'; input.className = 'rename-input'; input.value = oldDisplayName;
+                contentDiv.style.display = 'none';
+                tab.appendChild(input); input.focus(); input.select();
+
+                const saveRename = async () => {
+                    const newDisplayName = input.value.trim();
+                    const cleanup = (displayName) => { nameSpan.textContent = displayName; input.remove(); contentDiv.style.display = 'flex'; };
+                    if (!newDisplayName || newDisplayName === oldDisplayName) { cleanup(oldDisplayName); return; }
+                    try {
+                        const response = await fetch('/rename-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_id: oldGroupId, new_name: newDisplayName }) });
+                        const data = await response.json();
+                        if (response.ok) {
+                            const newGroupId = data.new_id;
+                            tab.id = `sidebar-tab-${newGroupId}`; tab.dataset.groupId = newGroupId; tab.querySelector('.delete-group-btn').dataset.groupId = newGroupId;
+                            const card = document.getElementById(`results-card-${oldGroupId}`);
+                            if(card) {
+                                card.id = `results-card-${newGroupId}`; card.dataset.groupId = newGroupId;
+                                card.querySelector('h2').id = `results-title-${newGroupId}`;
+                                card.querySelector('h2').innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg>${data.new_display_name}: Preview`;
+                                card.querySelector('.dock-btn').id = `dock-btn-${newGroupId}`;
+                            }
+                            renameGroupState(oldGroupId, newGroupId);
+                            const pos = localStorage.getItem(`card-pos-results-card-${oldGroupId}`);
+                            if (pos) { localStorage.setItem(`card-pos-results-card-${newGroupId}`, pos); localStorage.removeItem(`card-pos-results-card-${oldGroupId}`); }
+                            cleanup(data.new_display_name);
+                        } else { alert(`Error: ${data.message}`); cleanup(oldDisplayName); }
+                    } catch (error) { alert('An unexpected error occurred.'); cleanup(oldDisplayName); }
+                };
+                input.addEventListener('blur', saveRename);
+                input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.remove(); contentDiv.style.display = 'flex'; } });
+            });
+        }
+
+        // --- DOCK/UNDOCK LOGIC ---
+        function setupGroupControls(card) {
+            const getGroupId = () => card.dataset.groupId;
+            const dockBtn = card.querySelector('.dock-btn');
+            if (!dockBtn) return;
+            dockBtn.addEventListener('click', () => { card.classList.add('is-fading-out'); setGroupState(getGroupId(), 'docked'); setTimeout(() => { card.classList.add('is-hidden'); card.classList.remove('is-fading-out'); document.getElementById(`sidebar-tab-${getGroupId()}`).classList.remove('is-hidden', 'is-fading-out'); }, 300); });
+        }
+        function setupTabControls(tab) {
             const undockAction = (e) => {
-                // 1. Start fading out the tab
-                tabElement.classList.add('is-fading-out');
-                localStorage.setItem(resultsStateKey, 'undocked');
-
-                // 2. After the fade-out, hide it for real
-                setTimeout(() => {
-                    tabElement.classList.add('is-hidden');
-                }, 300);
-
-                // 3. Immediately show and start dragging the card
-                targetBubble.classList.remove('is-hidden', 'is-fading-out');
-                targetBubble.style.left = (e.clientX - (targetBubble.offsetWidth / 2)) + 'px';
-                targetBubble.style.top = (e.clientY - 20) + 'px';
-                targetBubble.style.transform = 'none';
-
-                const handle = targetBubble.querySelector('.drag-handle');
-                handle.dispatchEvent(new MouseEvent('mousedown', {
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: e.clientX,
-                    clientY: e.clientY
-                }));
+                const currentGroupId = tab.dataset.groupId;
+                const currentCard = document.getElementById(`results-card-${currentGroupId}`);
+                if (!currentCard) return;
+                tab.classList.add('is-fading-out');
+                setGroupState(currentGroupId, 'undocked');
+                setTimeout(() => tab.classList.add('is-hidden'), 300);
+                currentCard.classList.remove('is-hidden', 'is-fading-out');
+                currentCard.style.left = (e.clientX - (currentCard.offsetWidth / 2)) + 'px';
+                currentCard.style.top = (e.clientY - 20) + 'px';
+                currentCard.style.transform = 'none';
+                currentCard.querySelector('.drag-handle').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY }));
             };
-
-            tabElement.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                undockAction(e);
-            });
-
-            tabElement.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    const rect = tabElement.getBoundingClientRect();
-                    undockAction({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
-                }
-            });
-        }
-
-        if (dockBtn) {
-            dockBtn.addEventListener('click', () => {
-                // 1. Start the fade-out animation on the card
-                resultsCard.classList.add('is-fading-out');
-                localStorage.setItem(resultsStateKey, 'docked');
-                
-                // 2. After animation, hide the card, clean up, and show the tab
-                setTimeout(() => {
-                    resultsCard.classList.add('is-hidden');
-                    resultsCard.classList.remove('is-fading-out');
-                    if (resultsTab) {
-                        resultsTab.classList.remove('is-hidden', 'is-fading-out');
-                    }
-                }, 300);
-            });
+            tab.addEventListener('mousedown', (e) => { if (e.button === 0 && e.target.closest('.sidebar-item-content')) undockAction(e); });
+            tab.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.target.classList.contains('rename-input')) { e.preventDefault(); const rect = tab.getBoundingClientRect(); undockAction({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }); } });
         }
         
-        // --- DRAGGABLE BUBBLE LOGIC ---
+        // --- DRAGGABLE & POSITIONING LOGIC ---
         function makeDraggable(element) {
             const dragHandle = element.querySelector('.drag-handle');
             if (!dragHandle) return; 
-
             let isDragging = false, startX, startY, startLeft, startTop;
-            const storageKey = element.id ? `card-pos-${element.id}` : null;
-
-            dragHandle.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                isDragging = true;
-                startLeft = element.offsetLeft;
-                startTop = element.offsetTop;
-                element.style.left = `${startLeft}px`;
-                element.style.top = `${startTop}px`;
-                element.style.transform = 'none';
-                startX = e.pageX;
-                startY = e.pageY;
-                element.classList.add('dragging');
-                document.body.style.userSelect = 'none';
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const deltaX = e.pageX - startX;
-                const deltaY = e.pageY - startY;
-                element.style.left = `${startLeft + deltaX}px`;
-                element.style.top = `${startTop + deltaY}px`;
-            });
-            document.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                element.classList.remove('dragging');
-                document.body.style.userSelect = '';
-                if (storageKey) {
-                    const pos = { top: element.style.top, left: element.style.left };
-                    localStorage.setItem(storageKey, JSON.stringify(pos));
-                }
-            });
+            const getStorageKey = () => element.id ? `card-pos-${element.id}` : null;
+            dragHandle.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isDragging = true; element.style.left = `${element.offsetLeft}px`; element.style.top = `${element.offsetTop}px`; element.style.transform = 'none'; startLeft = element.offsetLeft; startTop = element.offsetTop; startX = e.pageX; startY = e.pageY; element.classList.add('dragging'); document.body.style.userSelect = 'none'; });
+            document.addEventListener('mousemove', (e) => { if (!isDragging) return; e.preventDefault(); const deltaX = e.pageX - startX; const deltaY = e.pageY - startY; element.style.left = `${startLeft + deltaX}px`; element.style.top = `${startTop + deltaY}px`; });
+            document.addEventListener('mouseup', () => { if (!isDragging) return; isDragging = false; element.classList.remove('dragging'); document.body.style.userSelect = ''; const key = getStorageKey(); if (key) { localStorage.setItem(key, JSON.stringify({ top: element.style.top, left: element.style.left })); } });
         }
-        function applySavedPositions() {
-            document.querySelectorAll('.draggable').forEach(el => {
-                if (el.id) {
-                    const savedPos = localStorage.getItem(`card-pos-${el.id}`);
-                    if (savedPos) {
-                        try {
-                            const { top, left } = JSON.parse(savedPos);
-                            if (top && left) {
-                                el.style.top = top;
-                                el.style.left = left;
-                                el.style.transform = 'none';
-                            }
-                        } catch(e) { console.error("Could not parse saved card position", e); }
-                    }
-                }
-            });
-        }
+        function applySavedPositions() { document.querySelectorAll('.draggable').forEach(el => { if (!el.id) return; const savedPos = localStorage.getItem(`card-pos-${el.id}`); if (savedPos) { try { const { top, left } = JSON.parse(savedPos); if (top && left) { el.style.top = top; el.style.left = left; el.style.transform = 'none'; } } catch (e) { console.error("Could not parse saved card position", e); } } }); }
         
         // --- ONBOARDING LOGIC ---
         function handleOnboarding() {
-            if (localStorage.getItem('onboardingComplete') === 'true') {
-                return;
-            }
-
+            if (localStorage.getItem('onboardingComplete') === 'true') return;
             const overlay = document.getElementById('onboarding-overlay');
             const tooltip = document.getElementById('onboarding-tooltip');
+            if(!overlay || !tooltip) return;
             const tooltipText = document.getElementById('onboarding-text');
             const nextBtn = document.getElementById('onboarding-next-btn');
             const skipBtn = document.getElementById('onboarding-skip-btn');
-
-            const steps = [
-                {
-                    element: '#upload-card .drag-handle',
-                    text: 'Welcome! This is a draggable bubble. You can move it around by its handle.',
-                    highlightClass: 'circle'
-                }
-            ];
-            
-            if (document.getElementById('dock-results-btn')) {
-                steps.push({
-                    element: '#dock-results-btn',
-                    text: 'After analyzing, you can "dock" the results bubble to the sidebar for later.',
-                    highlightClass: 'circle'
-                });
-            }
-
-            let currentStepIndex = 0;
-            let highlightedElement = null;
-
-            function showStep(index) {
-                if (highlightedElement) {
-                    highlightedElement.classList.remove('onboarding-highlight', 'circle');
-                }
-
-                const step = steps[index];
-                const target = document.querySelector(step.element);
-
-                if (!target) {
-                    nextStep();
-                    return;
-                }
-                
-                highlightedElement = target;
-                highlightedElement.classList.add('onboarding-highlight');
-                if (step.highlightClass) {
-                    highlightedElement.classList.add(step.highlightClass);
-                }
-
-                tooltipText.textContent = step.text;
-
-                const targetRect = target.getBoundingClientRect();
-                tooltip.style.top = `${targetRect.bottom + 15}px`;
-                tooltip.style.left = `${targetRect.left + (targetRect.width / 2) - (tooltip.offsetWidth / 2)}px`;
-
-                if(parseInt(tooltip.style.left) < 10) tooltip.style.left = '10px';
-                if((parseInt(tooltip.style.left) + tooltip.offsetWidth) > window.innerWidth - 10) tooltip.style.left = `${window.innerWidth - tooltip.offsetWidth - 10}px`;
-
-
-                if (index === steps.length - 1) {
-                    nextBtn.textContent = 'Done';
-                } else {
-                    nextBtn.textContent = 'Next';
-                }
-            }
-
-            function nextStep() {
-                currentStepIndex++;
-                if (currentStepIndex < steps.length) {
-                    showStep(currentStepIndex);
-                } else {
-                    endOnboarding();
-                }
-            }
-            
-            function endOnboarding() {
-                overlay.classList.add('is-hidden');
-                tooltip.classList.add('is-hidden');
-                if (highlightedElement) {
-                    highlightedElement.classList.remove('onboarding-highlight', 'circle');
-                }
-                localStorage.setItem('onboardingComplete', 'true');
-            }
-
-            overlay.classList.remove('is-hidden');
-            tooltip.classList.remove('is-hidden');
-            nextBtn.addEventListener('click', nextStep);
-            skipBtn.addEventListener('click', endOnboarding);
-            showStep(0);
+            let currentStepIndex = 0, highlightedElement = null;
+            const steps = [ { element: '#upload-card .drag-handle', text: 'Welcome! This is a draggable bubble.', highlightClass: 'circle' }, { element: '#group-select', text: 'Use this dropdown to assign your file to a Group.' } ];
+            if (document.querySelector('.sidebar-item')) { steps.push({ element: '.sidebar-item', text: 'A tab appears here. Drag it to undock. Right-click to rename. Hover to see the delete button.' }); }
+            function showStep(index) { if (highlightedElement) highlightedElement.classList.remove('onboarding-highlight', 'circle'); const step = steps[index]; const target = document.querySelector(step.element); if (!target) { nextStep(); return; } highlightedElement = target; highlightedElement.classList.add('onboarding-highlight'); if (step.highlightClass) highlightedElement.classList.add(step.highlightClass); tooltipText.textContent = step.text; const targetRect = target.getBoundingClientRect(); tooltip.style.top = `${targetRect.bottom + 15}px`; tooltip.style.left = `${targetRect.left + (targetRect.width / 2) - (tooltip.offsetWidth / 2)}px`; if(parseInt(tooltip.style.left) < 10) tooltip.style.left = '10px'; if((parseInt(tooltip.style.left) + tooltip.offsetWidth) > window.innerWidth - 10) tooltip.style.left = `${window.innerWidth - tooltip.offsetWidth - 10}px`; nextBtn.textContent = (index === steps.length - 1) ? 'Done' : 'Next'; }
+            function nextStep() { currentStepIndex++; currentStepIndex < steps.length ? showStep(currentStepIndex) : endOnboarding(); }
+            function endOnboarding() { overlay.classList.add('is-hidden'); tooltip.classList.add('is-hidden'); if (highlightedElement) highlightedElement.classList.remove('onboarding-highlight', 'circle'); localStorage.setItem('onboardingComplete', 'true'); }
+            overlay.classList.remove('is-hidden'); tooltip.classList.remove('is-hidden'); nextBtn.addEventListener('click', nextStep); skipBtn.addEventListener('click', endOnboarding); showStep(0);
         }
 
         // --- INITIALIZATION ---
         applySavedPositions();
         document.querySelectorAll('.draggable').forEach(makeDraggable);
-        if (resultsTab && resultsCard) {
-            makeTabDraggable(resultsTab, resultsCard);
+        document.querySelectorAll('.results-card').forEach(setupGroupControls);
+        document.querySelectorAll('.sidebar-item').forEach(tab => {
+            setupTabControls(tab);
+            setupRenameControls(tab);
+            const deleteBtn = tab.querySelector('.delete-group-btn');
+            if (deleteBtn) setupDeleteControls(deleteBtn);
+        });
+        initializeGroupStates();
+        if (sessionStorage.getItem('splashSeen') !== 'true') {
+            handleOnboarding();
         }
-        initializeResultsState();
-        handleOnboarding();
     });
 </script>
 

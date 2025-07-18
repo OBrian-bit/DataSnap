@@ -1,550 +1,762 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    
     <style>
-    /*
-    ==========================================================================
-    FINAL DESIGN SYSTEM
-    ==========================================================================
-    */
-    :root {
-        /* Default Theme: Light UI elements on a dark background */
-        --color-highlight: #4338ca;
-        --color-glow: #00c6ff;
-        --color-dot: #7c3aed;
-        --color-text-primary: #1a202c;  /* Dark text for light bubbles */
-        --color-text-secondary: #4a5568;
-        --color-surface: #ffffff;         /* White bubbles */
-        --color-border: #e2e8f0;
-        --color-success: #48bb78;
-        --color-danger: #f87171;
-        --color-bg: #f7fafc; /* Used for inner elements like stat cards */
-
-        /* Typography & Spacing */
-        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        --spacing-2: 0.5rem; --spacing-4: 1rem; --spacing-6: 1.5rem; --spacing-8: 2rem; --spacing-10: 2.5rem;
-
-        /* Other */
-        --border-radius-lg: 1rem;
-        --border-radius-xl: 1.5rem;
-        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        --transition: all 0.2s ease-in-out;
-    }
-
-    body.dark-mode {
-        /* Dark Mode Theme: Dark UI elements */
-        --color-highlight: #818cf8;
-        --color-dot: #a78bfa;
-        --color-text-primary: #e2e8f0;
-        --color-text-secondary: #cbd5e1;
-        --color-surface: #2a3145;
-        --color-border: #4a5568;
-        --color-bg: #212434;
-        --color-success: #68d391;
-        --color-danger: #ef4444;
-    }
-    
-    /*
-    ==========================================================================
-    GLOBAL & LAYOUT STYLES
-    ==========================================================================
-    */
-    *, *::before, *::after { box-sizing: border-box; }
-    
-    body {
-        font-family: var(--font-sans);
-        background-color: #212434;
-        color: var(--color-text-primary);
-        margin: 0;
-        padding: 0;
-        min-height: 100vh;
-        transition: background-color 0.2s ease-in-out;
-        overflow: hidden;
-        background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-        background-size: 2rem 2rem;
-        background-position: center;
-    }
-    
-    body.custom-background {
-        background-image: var(--custom-bg-image);
-        background-size: cover;
-        background-position: center center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-
-    .zoom-wrapper {
-        transition: transform 0.3s ease-out;
-        transform-origin: center center;
-        padding: var(--spacing-8);
-        height: 100vh;
-        width: 100vw;
-    }
-    
-    .is-hidden { display: none !important; }
-    
-    /*
-    ==========================================================================
-    COMPONENT STYLES
-    ==========================================================================
-    */
-    .card { background: var(--color-surface); border-radius: var(--border-radius-xl); box-shadow: var(--shadow-lg); padding: var(--spacing-8); border: 1px solid var(--color-border); width: 100%; max-width: 560px; position: relative; }
-    .card.draggable { position: absolute; z-index: 10; top: 20vh; left: 50%; transform: translateX(-50%); transition: opacity 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
-    .card.draggable.dragging { opacity: 0.95; z-index: 100; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); transition: none; }
-    body:has(.results-card:not(.is-hidden)) #upload-card { left: 25vw; }
-    
-    .drag-handle { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; background-color: var(--color-surface); border: 2px solid var(--color-border); border-radius: 50%; cursor: grab; transition: var(--transition); z-index: 1; }
-    .drag-handle:hover { background-color: var(--color-highlight); border-color: var(--color-highlight); box-shadow: 0 0 8px 1px var(--color-glow); }
-    .dragging .drag-handle { cursor: grabbing; }
-    
-    .card-header { text-align: center; margin-bottom: var(--spacing-8); }
-    h1 { position: relative; font-size: 2rem; font-weight: 700; margin: 0 0 var(--spacing-2) 0; color: var(--color-highlight); }
-    h1::before { content: ''; position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; border-radius: 9999px; background-color: var(--color-dot); }
-    .card-subtitle { font-size: 1.125rem; color: var(--color-text-secondary); margin: 0; max-width: 45ch; }
-
-    .upload-form { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-6); }
-    .file-drop-area { width: 100%; border: 2px dashed var(--color-border); border-radius: var(--border-radius-lg); padding: var(--spacing-8); cursor: pointer; transition: var(--transition); color: var(--color-text-secondary); font-weight: 500; text-align: center; overflow-wrap: break-word; }
-    .file-drop-area:hover { border-color: var(--color-glow); color: var(--color-glow); box-shadow: 0 0 10px 1px var(--color-glow); }
-    .upload-form input[type="file"] { display: none; }
-    .file-success-message { color: var(--color-success); font-weight: 700; }
-    .form-group { width: 100%; text-align: left; }
-    .form-group label { font-weight: 700; color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-2); display: block; }
-    .form-group select { width: 100%; padding: var(--spacing-2) var(--spacing-4); background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; cursor: pointer; }
-
-    .primary-button { background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border); width: 100px; height: 100px; font-size: 0.8rem; font-weight: 700; border-radius: 9999px; cursor: pointer; transition: var(--transition); display:flex; align-items:center; justify-content:center; text-transform: uppercase; letter-spacing: 0.05em; }
-    .primary-button:hover { border-color: var(--color-glow); color: var(--color-glow); transform: scale(1.05); box-shadow: 0 0 10px 2px var(--color-glow); }
-
-    #burger-menu, #sidebar-tab, .zoom-controls, #help-button { transition: var(--transition); }
-    #burger-menu:hover, #sidebar-tab:hover, .zoom-controls:hover, #help-button:hover { box-shadow: 0 0 10px 2px var(--color-glow); }
-
-    #burger-menu { position: fixed; top: var(--spacing-4); left: var(--spacing-4); width: 50px; height: 50px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 9999px; cursor: pointer; z-index: 1001; display: flex; align-items: center; justify-content: center; }
-    #burger-menu svg { width: 24px; height: 24px; color: var(--color-text-secondary); transition: transform 0.4s ease-in-out; }
-    #burger-menu.active svg { transform: rotate(90deg); }
-    #side-menu { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; background-color: var(--color-surface); box-shadow: var(--shadow-lg); border-right: 1px solid var(--color-border); transform: translateX(-100%); transition: transform 0.3s ease-in-out; z-index: 1000; padding-top: 80px; }
-    #side-menu.open { transform: translateX(0); }
-    .menu-items { list-style: none; padding: 0 var(--spacing-4); margin: 0; }
-    .menu-items li { padding: var(--spacing-4); display: flex; justify-content: space-between; align-items: center; color: var(--color-text-primary); font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
-    
-    .top-right-controls { position: fixed; top: var(--spacing-4); right: var(--spacing-4); z-index: 1001; display: flex; gap: var(--spacing-2); transition: right 0.3s ease-in-out; }
-    body:has(#right-sidebar.open) .top-right-controls { right: calc(320px + var(--spacing-4)); }
-
-    #sidebar-tab { width: 50px; height: 50px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 9999px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
-    .tab-line { width: 22px; height: 2px; background-color: var(--color-text-secondary); transition: 0.4s; border-radius: 3px; }
-    #sidebar-tab.active .tab-line1 { transform: rotate(45deg) translate(3px, 4px); }
-    #sidebar-tab.active .tab-line2 { transform: rotate(-45deg) translate(3px, -4px); }
-    
-    #right-sidebar { position: fixed; top: 0; right: 0; height: 100vh; width: 320px; background-color: var(--color-surface); box-shadow: var(--shadow-lg); border-left: 1px solid var(--color-border); transform: translateX(100%); transition: transform 0.3s ease-in-out; z-index: 1000; padding: 80px var(--spacing-4); color: var(--color-text-primary); overflow-y: auto; }
-    #right-sidebar.open { transform: translateX(0); }
-
-    .sidebar-item { position: relative; background-color: var(--color-bg); padding: var(--spacing-4); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); cursor: grab; margin-bottom: var(--spacing-4); font-weight: 700; font-size: 1rem; overflow-wrap: break-word; transition: opacity 0.3s ease, transform 0.3s ease; transform-origin: center; }
-    .sidebar-item-content { display: flex; flex-direction: column; }
-    .sidebar-item:hover { border-color: var(--color-glow); box-shadow: 0 0 8px 1px var(--color-glow); }
-    .sidebar-item small { font-weight: 400; font-size: 0.8rem; color: var(--color-text-secondary); display: block; margin-top: 4px; }
-    .rename-input { width: 100%; padding: 0; margin: 0; background: transparent; border: none; border-bottom: 2px solid var(--color-highlight); color: var(--color-text-primary); font-family: var(--font-sans); font-size: 1rem; font-weight: 700; outline: none; }
-    .delete-group-btn { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); opacity: 0; pointer-events: none; transition: var(--transition); padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-    .sidebar-item:hover .delete-group-btn { opacity: 0.6; pointer-events: auto; }
-    .delete-group-btn:hover { opacity: 1; color: var(--color-danger); transform: scale(1.1); background-color: rgba(255,0,0,0.1); }
-
-    .dock-btn, #close-help-btn { position: absolute; top: var(--spacing-4); right: var(--spacing-4); width: 32px; height: 32px; background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); opacity: 0.5; transition: var(--transition); padding: 0; }
-    .dock-btn:hover, #close-help-btn:hover { opacity: 1; color: var(--color-highlight); }
-
-    .themes-control > span { width: 100%; margin-bottom: var(--spacing-4); }
-    .theme-buttons { display: flex; gap: var(--spacing-2); }
-    .theme-button { flex-grow: 1; background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-primary); padding: var(--spacing-2); border-radius: 0.5rem; cursor: pointer; text-align: center; font-size: 0.875rem; font-weight: 500; transition: var(--transition); }
-    .theme-button:hover { background-color: var(--color-border); box-shadow: 0 0 8px 1px var(--color-glow); }
-
-    .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--color-border); transition: .4s; border-radius: 28px; }
-    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: var(--color-surface); transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: var(--color-highlight); }
-    input:checked + .slider:before { transform: translateX(22px); }
-
-    .results-card { transition: opacity 0.3s ease, transform 0.3s ease; transform-origin: 95% 5%; }
-    .results-card h2, .help-card h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 var(--spacing-6) 0; padding-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-border); overflow-wrap: break-word; }
-    .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-4); }
-    .stat-card { background-color: var(--color-bg); border: 1px solid var(--color-border); padding: var(--spacing-4); border-radius: var(--border-radius-lg); }
-    .stat-card-label { font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--spacing-2); display: block; font-weight: 500;}
-    .stat-card-value { font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); overflow-wrap: break-word; }
-    .table-wrapper { overflow-x: auto; margin-top: var(--spacing-6); }
-    .data-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-    .data-table th, .data-table td { padding: var(--spacing-2) var(--spacing-4); text-align: left; border-bottom: 1px solid var(--color-border); font-size: var(--font-size-sm); }
-    .error { color: var(--color-danger); }
-
-    .help-card h3 { font-size: 1.1rem; font-weight: 700; margin-top: var(--spacing-6); margin-bottom: var(--spacing-2); color: var(--color-highlight); }
-    .help-card p, .help-card li { color: var(--color-text-secondary); line-height: 1.6; font-size: 0.95rem;}
-    .help-card ul { padding-left: var(--spacing-6); margin: 0; }
-
-    .pan-controls { position: fixed; bottom: var(--spacing-4); left: var(--spacing-4); right: calc(var(--spacing-4) + 120px); z-index: 100; display: flex; align-items: center; }
-    #pan-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; background: var(--color-border); outline: none; border-radius: 10px; transition: background .2s; }
-    #pan-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 40px; background: var(--color-surface); border: 1px solid var(--color-border); cursor: ew-resize; border-radius: 10px; box-shadow: var(--shadow-lg); transition: var(--transition); }
-    #pan-slider::-moz-range-thumb { width: 20px; height: 40px; background: var(--color-surface); border: 1px solid var(--color-border); cursor: ew-resize; border-radius: 10px; box-shadow: var(--shadow-lg); transition: var(--transition); }
-    #pan-slider::-webkit-slider-thumb:hover, #pan-slider::-moz-range-thumb:hover { box-shadow: 0 0 10px 2px var(--color-glow); }
-
-    .zoom-controls { position: fixed; bottom: var(--spacing-4); right: var(--spacing-4); display: flex; background-color: var(--color-surface); padding: var(--spacing-2); border-radius: 9999px; border: 1px solid var(--color-border); z-index: 100; cursor: ns-resize; }
-    .zoom-indicator { width: 45px; height: 45px; color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; }
-    .zoom-indicator svg { width: 24px; height: 24px; }
-
-    #help-button { width: 50px; height: 50px; background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); padding: 0; }
-    #help-button:hover { border-color: var(--color-glow); }
-    #help-button svg { width: 24px; height: 24px; }
-    
-    #onboarding-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); z-index: 2000; backdrop-filter: blur(2px); }
-    .onboarding-highlight { position: relative; z-index: 2001; box-shadow: 0 0 0 4px var(--color-glow), 0 0 20px 5px var(--color-glow); border-radius: 1.5rem; transition: var(--transition); }
-    .onboarding-highlight.circle { border-radius: 50%; }
-    #onboarding-tooltip { position: absolute; z-index: 2002; background-color: var(--color-surface); color: var(--color-text-primary); padding: var(--spacing-4); border-radius: var(--border-radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-lg); width: 280px; }
-    #onboarding-tooltip p { margin: 0 0 var(--spacing-4) 0; color: var(--color-text-secondary); line-height: 1.6; }
-    .onboarding-buttons { display: flex; justify-content: space-between; align-items: center; }
-    .onboarding-buttons button { background-color: var(--color-highlight); color: white; border: none; padding: var(--spacing-2) var(--spacing-4); border-radius: 0.5rem; cursor: pointer; }
-    .onboarding-buttons button.skip { background: transparent; color: var(--color-text-secondary); }
-
-    .is-fading-out { opacity: 0; transform: scale(0.5); pointer-events: none; }
+        body { font-family: 'Inter', sans-serif; }
+        /* Style for the chart's drop shadow, which works better than box-shadow for irregular shapes */
+        .chart-shadow {
+            filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.07));
+        }
+        .dark .chart-shadow {
+            filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25));
+        }
+        /* Spinner for loading state */
+        .loader {
+            border: 2px solid #f3f3f3; /* Light grey */
+            border-top: 2px solid #3b82f6; /* Blue */
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 antialiased min-h-screen">
 
-<button id="burger-menu" title="Open Settings" aria-label="Open Settings">
-    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.69-1.62-0.92L14.4,2.23c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.44,0.17-0.48,0.41L9.18,4.59C8.59,4.82,8.06,5.14,7.56,5.51L5.17,4.55C4.95,4.48,4.7,4.55,4.59,4.75L2.67,8.07 C2.55,8.27,2.61,8.54,2.79,8.68l2.03,1.58C4.8,10.64,4.78,10.96,4.78,11.28c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.24,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.69,1.62,0.92L9.6,21.77 c0.04,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.48-0.41l0.42-2.36c0.59-0.23,1.12-0.54,1.62-0.92l2.39,0.96 c0.22,0.08,0.47,0.01,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
-</button>
-
-<nav id="side-menu">
-    <ul class="menu-items">
-        <li>
-            <span>Dark Mode</span>
-            <label class="switch">
-                <input type="checkbox" id="theme-toggle-switch">
-                <span class="slider"></span>
-            </label>
-        </li>
-        <li class="themes-control">
-            <span>Custom Background</span>
-            <div class="theme-buttons">
-                <label for="bg-upload-input" class="theme-button">Upload</label>
-                <input type="file" id="bg-upload-input" accept="image/*" style="display: none;">
-                <button id="bg-reset-button" class="theme-button">Reset</button>
-            </div>
-        </li>
-    </ul>
-</nav>
-
-<div class="top-right-controls">
-    <button id="help-button" title="Help" aria-label="Open help guide">
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
-    </button>
-    <button id="sidebar-tab" title="Toggle Sidebar" aria-label="Toggle Sidebar">
-        <div class="tab-line tab-line1"></div>
-        <div class="tab-line tab-line2"></div>
-    </button>
-</div>
-
-<aside id="right-sidebar">
-    {% for group_id, results in groups.items() %}
-    <div class="sidebar-item" id="sidebar-tab-{{ group_id }}" data-group-id="{{ group_id }}" title="Drag to Undock. Right-click to rename." role="button" tabindex="0">
-        <div class="sidebar-item-content">
-            <span class="sidebar-item-name">{{ results.display_name }}</span>
-            <small class="sidebar-item-filename">{{ results.filename }}</small>
-        </div>
-        <button class="delete-group-btn" data-group-id="{{ group_id }}" title="Delete Group">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+<!-- App Header -->
+<header class="bg-white/75 dark:bg-slate-900/75 backdrop-blur-lg border-b border-slate-200 dark:border-slate-700 h-16 sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+    <h1 class="text-xl font-bold text-indigo-600 dark:text-indigo-400">File Analyzer</h1>
+    <div class="flex items-center gap-2">
+        <button id="help-button" class="icon-button h-9 w-9 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors" title="Help" aria-label="Open help guide">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>
+        </button>
+        <button id="burger-menu" class="icon-button h-9 w-9 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors" title="Open Settings" aria-label="Open Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2.4l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2.4l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+        <button id="sidebar-tab" class="icon-button h-9 w-9 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors" title="Toggle Group List" aria-label="Toggle Group List">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
         </button>
     </div>
-    {% endfor %}
-</aside>
+</header>
 
+<!-- Toast Message Container -->
+<div id="toast-container" class="fixed top-20 right-4 z-[100] w-full max-w-xs space-y-3"></div>
 
-<div class="zoom-wrapper" id="zoom-wrapper">
-    <main class="main-container">
-        <section class="card draggable" id="upload-card">
-            <div class="drag-handle" title="Drag this bubble"></div>
-            <div class="card-header">
-                <h1>File Analyzer</h1>
-                <p class="card-subtitle">Upload a CSV or Excel file to instantly analyze its structure, metadata, and content.</p>
-            </div>
-            <form method="post" enctype="multipart/form-data" class="upload-form">
-                <label for="file-upload" class="file-drop-area" id="file-label">
-                    <span id="file-label-text">Click or drag & drop file</span>
+<!-- Left Settings Sidebar -->
+<aside id="side-menu" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-800 shadow-xl z-50 transform transition-transform ease-in-out duration-300 -translate-x-full">
+    <div class="p-6 pt-20">
+        <h3 class="text-lg font-semibold mb-4">Settings</h3>
+        <ul class="space-y-4">
+            <li class="flex items-center justify-between">
+                <span class="font-medium">Dark Mode</span>
+                <label for="theme-toggle-switch" class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="theme-toggle-switch" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
                 </label>
-                <input id="file-upload" type="file" name="file" required>
-                
-                <div class="form-group">
-                    <label for="group-select">Assign to Group</label>
-                    <select name="group_id" id="group-select" required>
-                        <option value="group_1">Group 1</option>
-                        <option value="group_2">Group 2</option>
-                        <option value="group_3">Group 3</option>
-                        <option value="group_4">Group 4</option>
-                        <option value="group_5">Group 5</option>
+            </li>
+            <li class="flex items-center justify-between">
+                <span class="font-medium">Language</span>
+                <div class="w-1/2">
+                    <select id="language-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <!-- Add more languages in the future -->
                     </select>
                 </div>
+            </li>
+        </ul>
+    </div>
+</aside>
 
-                <button type="submit" class="primary-button">Analyze</button>
-            </form>
-        </section>
-
-        {% if error %}
-            <section class="card draggable error" id="error-card">
-                <div class="drag-handle" title="Drag this bubble"></div>
-                {{ error }}
-            </section>
+<!-- Right Groups Sidebar -->
+<aside id="right-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white dark:bg-slate-800 shadow-xl z-50 transform transition-transform ease-in-out duration-300 translate-x-full">
+    <div class="p-6 pt-20">
+        <h3 class="text-lg font-semibold mb-4">Groups</h3>
+        <div class="space-y-3">
+        {% if not groups %}
+            <p class="text-sm text-center text-slate-500 dark:text-slate-400 mt-8">Your processed file groups will appear here.</p>
         {% endif %}
-
         {% for group_id, results in groups.items() %}
-        <section class="card draggable results-card" id="results-card-{{ group_id }}" data-group-id="{{ group_id }}">
-             <button class="dock-btn" id="dock-btn-{{ group_id }}" title="Dock to sidebar" aria-label="Dock results to sidebar">
-                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.94 2 4.53 5.03 4.06 9.02C4.02 9.35 4 9.68 4 10c0 4.42 3.58 8 8 8s8-3.58 8-8c0-3.26-1.95-6.04-4.7-7.26C15.05 2.25 14.68 2 14.29 2H12zm0 2h1.41c.21 0 .4.11.51.29L16 6.33V8h-4V4zM8 4h2v4H8V4zm6 6v4h-4v-4h4z"></path></svg>
+        <div class="sidebar-item relative group bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500" id="sidebar-tab-{{ group_id }}" data-group-id="{{ group_id }}" title="Click to view. Right-click to rename." role="button" tabindex="0">
+            <div>
+                <span class="font-semibold text-slate-800 dark:text-slate-100 sidebar-item-name">{{ results.display_name }}</span>
+                <small class="block text-xs text-slate-500 dark:text-slate-400 truncate sidebar-item-filename">{{ results.filename }}</small>
+            </div>
+            <button class="delete-group-btn absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white" data-group-id="{{ group_id }}" title="Delete Group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
             </button>
-            <div class="drag-handle" title="Drag this bubble"></div>
-            <h2 id="results-title-{{ group_id }}">{{ results.display_name }}: Preview</h2>
-            <div class="results-grid">
-                <div class="stat-card"><strong class="stat-card-label">File Name</strong><span class="stat-card-value">{{ results.filename }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">File Size</strong><span class="stat-card-value">{{ results.filesize_kb }} KB</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Rows</strong><span class="stat-card-value">{{ results.rows }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Columns</strong><span class="stat-card-value">{{ results.columns }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Missing Values</strong><span class="stat-card-value">{{ results.missing_values }}</span></div>
-                <div class="stat-card"><strong class="stat-card-label">Duplicate Rows</strong><span class="stat-card-value">{{ results.duplicate_rows }}</span></div>
-            </div>
-            <div class="table-wrapper">
-                <p><strong>Column Names:</strong> {{ results.column_names|join(', ') }}</p>
-                {{ results.preview|safe }}
-            </div>
-        </section>
+        </div>
         {% endfor %}
-        
-        <section class="card draggable help-card is-hidden" id="help-card">
-             <button id="close-help-btn" title="Close Help" aria-label="Close help">
-                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main-container max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+    
+    <!-- Upload Card -->
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700" id="upload-card">
+        <div class="p-6 text-center">
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Upload & Analyze</h2>
+            <p class="mt-2 text-slate-600 dark:text-slate-400">Upload a CSV, TXT, or Excel file to begin.</p>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="p-6 border-t border-slate-200 dark:border-slate-700 space-y-6">
+            <label for="file-upload" class="file-drop-area flex flex-col items-center justify-center w-full h-48 border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <div id="file-label-text" class="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500 dark:text-slate-400">
+                    <svg class="w-8 h-8 mb-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+                    <p class="mb-2 text-sm"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                    <p class="text-xs">CSV, XLSX, XLS, or TXT</p>
+                </div>
+            </label>
+            <input id="file-upload" type="file" name="file" accept=".csv,.xlsx,.xls,.txt" class="hidden" required>
+            
+            <div class="w-full max-w-sm mx-auto">
+                <label for="group-select" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Assign to Group</label>
+                <select name="group_id" id="group-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                    <option value="group_1">Group 1</option> <option value="group_2">Group 2</option> <option value="group_3">Group 3</option> <option value="group_4">Group 4</option> <option value="group_5">Group 5</option>
+                </select>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 bg-indigo-600 text-white hover:bg-indigo-700 h-10 py-2 px-6">Analyze</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Results Cards -->
+    {% for group_id, results in groups.items() %}
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 transition-all duration-300" id="results-card-{{ group_id }}" data-group-id="{{ group_id }}">
+        <div class="p-6 border-b border-slate-200 dark:border-slate-700">
+             <h2 id="results-title-{{ group_id }}" class="text-2xl font-bold text-center text-slate-900 dark:text-white mb-6">{{ results.display_name }}: Analysis & Preview</h2>
+             <!-- Progress Tracker -->
+             <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 text-center sm:text-left">Processing Pipeline</h3>
+             <ol class="flex items-center w-full text-sm font-medium text-center text-slate-500 dark:text-slate-400">
+                <li class="flex md:w-full items-center text-green-600 dark:text-green-400 sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-green-200 dark:after:border-green-700 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10">
+                    <span class="flex items-center"><svg class="w-4 h-4 mr-2 sm:w-5 sm:h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg> Upload</span>
+                </li>
+                <li class="flex md:w-full items-center text-green-600 dark:text-green-400 sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-green-200 dark:after:border-green-700 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10">
+                    <span class="flex items-center"><svg class="w-4 h-4 mr-2 sm:w-5 sm:h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg> Process</span>
+                </li>
+                <li class="flex md:w-full items-center text-green-600 dark:text-green-400 sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-green-200 dark:after:border-green-700 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10">
+                    <span class="flex items-center"><svg class="w-4 h-4 mr-2 sm:w-5 sm:h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg> Preview</span>
+                </li>
+                <li class="flex items-center text-indigo-600 dark:text-indigo-400">
+                    <span class="flex items-center"><span class="mr-2 h-5 w-5 rounded-full border-2 border-current flex items-center justify-center font-bold text-xs">4</span> Export</span>
+                </li>
+            </ol>
+        </div>
+        <div class="p-6 space-y-8">
+            <!-- Stats Grid -->
+            <div id="stats-grid-{{ group_id }}" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                {% for label, value, key in [('File Name', results.filename, 'filename'), ('File Size', results.filesize_kb~' KB', 'filesize'), ('Encoding', results.encoding, 'encoding'), ('Rows', results.rows, 'rows'), ('Columns', results.columns, 'columns'), ('Missing Cells', results.missing_values, 'missing_values'), ('Duplicate Rows', results.duplicate_rows, 'duplicate_rows')] %}
+                <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                    <dt class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">{{ label }}</dt>
+                    <dd class="mt-1 text-xl font-semibold text-slate-900 dark:text-white truncate" title="{{ value }}" data-stat-key="{{ key }}">{{ value }}</dd>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Charts -->
+            {% if results.quality_stats %}
+            <div id="chart-container-{{ group_id }}" data-stats='{{ results.quality_stats | tojson | safe }}' class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-200 dark:border-slate-700">
+                <div class="text-center">
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Row Quality</h3>
+                    <div class="relative h-48 w-full"><canvas id="rows-chart-{{ group_id }}" class="chart-shadow"></canvas></div>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Cell Quality</h3>
+                    <div class="relative h-48 w-full"><canvas id="cells-chart-{{ group_id }}" class="chart-shadow"></canvas></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Processing Details -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 border-t border-slate-200 dark:border-slate-700">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Applied Transformations</h3>
+                    <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                    {% for transform in results.transformations %}
+                        <li class="flex items-start"><span class="text-indigo-500 mt-1 mr-2">✓</span><span>{{ transform }}</span></li>
+                    {% else %} <li>No automatic transformations applied.</li> {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Detected Column Types</h3>
+                    <div class="space-y-1 text-sm text-slate-600 dark:text-slate-300 max-h-48 overflow-y-auto pr-2">
+                    {% for col, dtype in results.column_types.items() %}
+                        <div class="flex justify-between items-baseline"><strong class="font-medium text-slate-700 dark:text-slate-200 truncate pr-2">{{ col }}</strong> <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full px-2 py-0.5">{{ dtype }}</span></div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Export & Preview -->
+            <div class="pt-8 border-t border-slate-200 dark:border-slate-700">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data Preview</h3>
+                    <div class="flex items-center gap-3">
+                        <a href="/export/{{ group_id }}/csv" class="export-button inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 h-9 px-4 py-2" download>Export CSV</a>
+                        <a href="/export/{{ group_id }}/xlsx" class="export-button inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 h-9 px-4 py-2" download>Export XLSX</a>
+                    </div>
+                </div>
+                <div id="preview-container-{{ group_id }}">
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                        <table class="min-w-full table-auto">
+                            <thead class="bg-slate-100 dark:bg-slate-800">
+                                <tr>
+                                    {% for col in results.preview.columns %}
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                        {{ col }}
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                {% for row in results.preview.data %}
+                                <tr class="bg-white dark:bg-slate-900 even:bg-slate-50 dark:even:bg-slate-800/50">
+                                    {% for cell in row %}
+                                        <td class="px-6 py-4 whitespace-nowrap align-top text-sm text-slate-700 dark:text-slate-300 font-mono">{{ cell }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Filters Section -->
+            <div class="pt-8 border-t border-slate-200 dark:border-slate-700">
+                <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Data Cleaning Filters</h3>
+                <div id="filter-list-{{ group_id }}" class="space-y-4 mb-4">
+                    <!-- JS will populate this area with filter items -->
+                </div>
+                <div class="flex items-center gap-3">
+                    <button class="add-filter-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900">
+                        + Add Filter
+                    </button>
+                    <button class="apply-filters-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400 dark:disabled:bg-green-800">
+                        Apply Filters
+                    </button>
+                    <button class="reset-filters-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500 disabled:bg-slate-100 dark:disabled:bg-slate-700">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endfor %}
+    
+    <!-- Help Card (Initially hidden) -->
+    <section class="hidden bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6 sm:p-8" id="help-card">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">How To Use This App</h2>
+            <button id="close-help-btn" class="icon-button h-8 w-8 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white" title="Close Help">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
             </button>
-            <div class="drag-handle" title="Drag this bubble"></div>
-            <h2>How To Use This App</h2>
-            <p>This application allows you to quickly analyze CSV and Excel files. It automatically detects and formats common data types and provides key statistics about your file.</p>
+        </div>
+        <div class="prose prose-slate dark:prose-invert max-w-none">
+            <p>This application allows you to quickly analyze CSV, TXT, and Excel files. It automatically detects encoding, formats common data types, and provides key statistics about your file.</p>
             <h3>Using Groups</h3>
-            <p>You can now work with multiple datasets at once. Before uploading, select a Group from the dropdown. The analysis will be saved to that group, creating a new tab in the right sidebar. Hover over a tab to see the delete button. Right-click a tab to rename the group.</p>
+            <p>You can work with multiple datasets at once. Before uploading, select a Group from the dropdown. The analysis will create a result card below and a new entry in the right sidebar. Hover over an entry to see the delete button. Right-click an entry to rename the group.</p>
+            <h3>Data Cleaning Filters</h3>
+            <p>After your file is analyzed, you can apply cleaning filters. Click <strong>+ Add Filter</strong> to create a new rule, configure it, and then click <strong>Apply Filters</strong> to see a live preview of the changes. You can stack multiple filters. Click <strong>Reset</strong> to remove all applied filters. The cleaned data will be used when you export.</p>
             <h3>Interface Controls</h3>
             <ul>
-                <li><strong>Right Sidebar (Tab Icon):</strong> This is the "dock". It now holds tabs for all your active groups. Drag a tab from the sidebar to undock its bubble.</li>
-                <li><strong>Pan & Zoom:</strong> Use the slider at the bottom to pan left and right. Hover over the magnifying glass and use your mouse wheel to zoom in and out.</li>
+                <li><strong>Exporting:</strong> After analyzing a file, use the buttons at the bottom of the results card to download the cleaned data.</li>
+                <li><strong>Right Sidebar (Tab Icon):</strong> This panel holds a list of all your active groups. Click an item to scroll directly to its result card.</li>
             </ul>
-        </section>
-    </main>
-</div>
+        </div>
+    </section>
+</main>
 
-<div class="pan-controls">
-    <input type="range" min="-50" max="50" value="0" id="pan-slider" title="Pan scene left or right" aria-label="Pan scene left or right">
-</div>
-
-<div class="zoom-controls" id="zoom-controls" role="group" aria-label="Zoom controls. Use mouse wheel to zoom." tabindex="0">
-    <div class="zoom-indicator">
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+<!-- NEW: Filter Item Template -->
+<template id="filter-item-template">
+    <div class="filter-item flex items-start gap-3 bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div class="flex-grow space-y-3">
+            <select class="filter-type block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="remove_duplicates">Remove Duplicate Rows</option>
+                <option value="remove_junk">Remove Rows with Junk Values</option>
+            </select>
+            <div class="filter-options hidden space-y-3">
+                <!-- Content here is specific to the filter type -->
+            </div>
+        </div>
+        <button class="remove-filter-btn h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-md text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors" title="Remove Filter">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
     </div>
-</div>
+</template>
 
-<div id="onboarding-overlay" class="is-hidden"></div>
-<div id="onboarding-tooltip" class="is-hidden">
-    <p id="onboarding-text"></p>
-    <div class="onboarding-buttons">
-        <button id="onboarding-skip-btn" class="skip">Skip</button>
-        <button id="onboarding-next-btn">Next</button>
-    </div>
-</div>
+{% set server_data = {'groups': groups} %}
+<script id="server-data" type="application/json">
+  {{ server_data | tojson | safe }}
+</script>
 
+{% set msgs = get_flashed_messages(with_categories=true) %}
+{% if msgs %}
+  <script id="flash‑data" type="application/json">
+    {{ msgs|tojson|safe }}
+  </script>
+{% endif %}
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const body = document.body;
+document.addEventListener('DOMContentLoaded', function() {
+    const htmlEl = document.documentElement;
+    let chartInstances = {};
+    const toastContainer = document.getElementById('toast-container');
+    const mainContainer = document.querySelector('.main-container');
 
-        // --- THEME & BG ---
-        const themeSwitch = document.getElementById('theme-toggle-switch');
-        const themeKey = 'themePreference';
-        const toggleTheme = () => { body.classList.toggle('dark-mode', themeSwitch.checked); localStorage.setItem(themeKey, themeSwitch.checked ? 'dark' : 'light'); };
-        themeSwitch.addEventListener('change', toggleTheme);
-        const applySavedTheme = () => { const savedTheme = localStorage.getItem(themeKey); themeSwitch.checked = savedTheme !== 'light'; toggleTheme(); };
-        const bgUploadInput = document.getElementById('bg-upload-input');
-        const bgResetBtn = document.getElementById('bg-reset-button');
-        const bgStorageKey = 'customBgImage';
-        const applySavedBackground = () => { const savedBg = localStorage.getItem(bgStorageKey); if (savedBg) { document.documentElement.style.setProperty('--custom-bg-image', `url(${savedBg})`); body.classList.add('custom-background'); } };
-        bgUploadInput.addEventListener('change', (event) => { const file = event.target.files[0]; if (!file || !file.type.startsWith('image/')) return; const reader = new FileReader(); reader.onload = (e) => { localStorage.setItem(bgStorageKey, e.target.result); applySavedBackground(); }; reader.readAsDataURL(file); });
-        bgResetBtn.addEventListener('click', () => { localStorage.removeItem(bgStorageKey); document.documentElement.style.removeProperty('--custom-bg-image'); body.classList.remove('custom-background'); });
-        applySavedBackground();
-        applySavedTheme();
+    // --- PARSE SERVER DATA ---
+    const serverDataEl = document.getElementById('server-data');
+    const serverData = serverDataEl ? JSON.parse(serverDataEl.textContent) : { groups: {} };
+    
+    const flashEl = document.getElementById("flash‑data");
+    const flashedMessages = flashEl ? JSON.parse(flashEl.textContent) : [];
 
-        // --- MENUS & HELP ---
-        document.getElementById('burger-menu').addEventListener('click', () => { document.getElementById('burger-menu').classList.toggle('active'); document.getElementById('side-menu').classList.toggle('open'); });
-        document.getElementById('sidebar-tab').addEventListener('click', () => { document.getElementById('sidebar-tab').classList.toggle('active'); document.getElementById('right-sidebar').classList.toggle('open'); });
-        document.getElementById('help-button').addEventListener('click', () => document.getElementById('help-card').classList.toggle('is-hidden'));
-        document.getElementById('close-help-btn').addEventListener('click', () => document.getElementById('help-card').classList.add('is-hidden'));
+    // --- TOAST NOTIFICATIONS ---
+    const showToast = (message, type = 'info') => {
+        const icons = {
+            success: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            error: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>`,
+            info: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="16" y2="12"></line><line x1="12" x2="12.01" y1="8" y2="8"></line></svg>`,
+        };
+        const colors = {
+            success: 'bg-green-100 dark:bg-green-900/50 border-green-500 dark:border-green-600 text-green-700 dark:text-green-300',
+            error: 'bg-red-100 dark:bg-red-900/50 border-red-500 dark:border-red-600 text-red-700 dark:text-red-300',
+            info: 'bg-blue-100 dark:bg-blue-900/50 border-blue-500 dark:border-blue-600 text-blue-700 dark:text-blue-300',
+        };
 
-        // --- FILE UPLOAD UI ---
-        const fileInput = document.getElementById('file-upload');
-        if (fileInput) { const fileLabelText = document.getElementById('file-label-text'); const originalLabelText = fileLabelText.innerHTML; fileInput.addEventListener('change', () => { fileLabelText.innerHTML = fileInput.files.length > 0 ? `<span class="file-success-message">✅ ${fileInput.files[0].name}</span>` : originalLabelText; });}
+        const toast = document.createElement('div');
+        toast.className = `w-full flex items-start p-4 rounded-lg shadow-lg border-l-4 transition-all duration-300 transform-gpu ${colors[type] || colors['info']}`;
         
-        // --- PAN & ZOOM ---
-        const zoomWrapper = document.getElementById('zoom-wrapper');
-        const zoomControls = document.getElementById('zoom-controls');
-        const panSlider = document.getElementById('pan-slider');
-        let currentZoom = 1.0, currentPan = 0, currentVerticalPan = 0;
-        const updateWrapperTransform = () => { zoomWrapper.style.transform = `scale(${currentZoom}) translateX(${currentPan}vw) translateY(${currentVerticalPan}vh)`; };
-        zoomControls.addEventListener('wheel', (e) => { e.preventDefault(); if (e.deltaY < 0) { currentZoom = Math.min(1.2, parseFloat((currentZoom + 0.05).toFixed(2))); } else { currentZoom = Math.max(0.5, parseFloat((currentZoom - 0.05).toFixed(2))); } updateWrapperTransform(); }, { passive: false });
-        panSlider.addEventListener('input', () => { currentPan = panSlider.value; updateWrapperTransform(); });
-        document.addEventListener('wheel', (e) => { if (e.target.closest('#zoom-controls, #pan-slider, #side-menu, #right-sidebar, .card')) return; e.preventDefault(); if (e.deltaY > 0) { currentVerticalPan -= 2; } else { currentVerticalPan += 2; } currentVerticalPan = Math.max(-50, Math.min(50, currentVerticalPan)); updateWrapperTransform(); }, { passive: false });
-        updateWrapperTransform();
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'flex-shrink-0';
+        iconDiv.innerHTML = icons[type] || icons['info'];
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'ml-3 flex-1 pt-0.5 text-sm font-medium';
+        messageDiv.textContent = message;
 
-        // --- GROUP STATE & LOCALSTORAGE MANAGEMENT ---
-        const groupStatesKey = 'groupCardStates';
-        function getGroupStates() { try { return JSON.parse(localStorage.getItem(groupStatesKey)) || {}; } catch { return {}; } }
-        function setGroupState(groupId, state) { const states = getGroupStates(); states[groupId] = state; localStorage.setItem(groupStatesKey, JSON.stringify(states)); }
-        function removeGroupState(groupId) { const states = getGroupStates(); delete states[groupId]; localStorage.setItem(groupStatesKey, JSON.stringify(states)); }
-        function renameGroupState(oldId, newId) { const states = getGroupStates(); if (states[oldId]) { states[newId] = states[oldId]; delete states[oldId]; localStorage.setItem(groupStatesKey, JSON.stringify(states)); } }
+        const closeButton = document.createElement('button');
+        closeButton.className = 'ml-4 flex-shrink-0 opacity-70 hover:opacity-100';
+        closeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
 
-        function initializeGroupStates() {
-            const states = getGroupStates();
-            document.querySelectorAll('.results-card').forEach(card => {
-                const groupId = card.dataset.groupId;
-                const tab = document.getElementById(`sidebar-tab-${groupId}`);
-                if (!tab) return;
-                const state = states[groupId] || 'docked';
-                if (state === 'undocked') { card.classList.remove('is-hidden'); tab.classList.add('is-hidden'); } 
-                else { card.classList.add('is-hidden'); tab.classList.remove('is-hidden'); }
+        toast.appendChild(iconDiv);
+        toast.appendChild(messageDiv);
+        toast.appendChild(closeButton);
+        
+        const removeToast = () => {
+            toast.classList.add('opacity-0', 'translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        closeButton.addEventListener('click', removeToast);
+        setTimeout(removeToast, 5000);
+        
+        toastContainer.appendChild(toast);
+    };
+
+    // --- THEME ---
+    const themeSwitch = document.getElementById('theme-toggle-switch');
+    const themeKey = 'themePreference';
+    const applySavedTheme = () => {
+        const savedTheme = localStorage.getItem(themeKey);
+        themeSwitch.checked = savedTheme !== 'light';
+        if (themeSwitch.checked) {
+            htmlEl.classList.add('dark');
+        } else {
+            htmlEl.classList.remove('dark');
+        }
+        initializeAllCharts();
+    };
+    themeSwitch.addEventListener('change', () => {
+        if (themeSwitch.checked) {
+            htmlEl.classList.add('dark');
+            localStorage.setItem(themeKey, 'dark');
+        } else {
+            htmlEl.classList.remove('dark');
+            localStorage.setItem(themeKey, 'light');
+        }
+        initializeAllCharts();
+    });
+
+    // --- LANGUAGE SELECTOR ---
+    const languageSelect = document.getElementById('language-select');
+    const languageKey = 'languagePreference';
+    const applySavedLanguage = () => {
+        const savedLang = localStorage.getItem(languageKey) || 'en';
+        if (languageSelect) languageSelect.value = savedLang;
+    };
+    if (languageSelect) {
+        languageSelect.addEventListener('change', () => {
+            const selectedLang = languageSelect.value;
+            const selectedLangText = languageSelect.options[languageSelect.selectedIndex].text;
+            localStorage.setItem(languageKey, selectedLang);
+            showToast(`Language set to ${selectedLangText}. UI text update is not yet implemented.`, 'info');
+        });
+    }
+
+    // --- CHARTS ---
+    const getChartColors = () => {
+        const isDark = htmlEl.classList.contains('dark');
+        return {
+            textColor: isDark ? 'rgb(203 213 225)' : 'rgb(71 85 105)',
+            gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            success: '#2dd4bf', highlight: '#3b82f6', danger: '#f43f5e', secondary: '#94a3b8'
+        };
+    };
+
+    const renderDoughnutChart = (canvasId, data, labels, colors) => {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        const chartColors = getChartColors();
+        const chart = new Chart(ctx, {
+            type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, spacing: 10, borderRadius: 8, }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: true, position: 'bottom', labels: { color: chartColors.textColor, boxWidth: 12, padding: 20 } }, tooltip: { callbacks: { label: (c) => `${c.label || ''}: ${c.raw.toLocaleString()}` } } } }
+        });
+        chartInstances[canvasId] = chart;
+    };
+
+    const initializeAllCharts = (groupId = null) => {
+        const init = (container) => {
+            const stats = JSON.parse(container.dataset.stats);
+            const gId = container.id.replace('chart-container-', '');
+            if (chartInstances[`rows-chart-${gId}`]) chartInstances[`rows-chart-${gId}`].destroy();
+            if (chartInstances[`cells-chart-${gId}`]) chartInstances[`cells-chart-${gId}`].destroy();
+            const colors = getChartColors();
+            if (stats.total_rows > 0) { renderDoughnutChart(`rows-chart-${gId}`, [stats.unique_rows, stats.duplicate_rows], ['Unique', 'Duplicate'], [colors.success, colors.danger]); }
+            if (stats.total_cells > 0) { renderDoughnutChart(`cells-chart-${gId}`, [stats.valid_cells, stats.missing_cells], ['Valid', 'Missing'], [colors.highlight, colors.secondary]); }
+        };
+        if (groupId) {
+            const container = document.getElementById(`chart-container-${groupId}`);
+            if (container) init(container);
+        } else {
+            document.querySelectorAll('[id^="chart-container-"]').forEach(init);
+        }
+    };
+
+    // --- MENUS & HELP ---
+    const sideMenu = document.getElementById('side-menu');
+    const rightSidebar = document.getElementById('right-sidebar');
+    const burgerMenuBtn = document.getElementById('burger-menu');
+    const sidebarTabBtn = document.getElementById('sidebar-tab');
+    
+    const toggleSidebar = (sidebar) => {
+        const isOpening = sidebar.classList.contains('-translate-x-full') || sidebar.classList.contains('translate-x-full');
+        sideMenu.classList.add('-translate-x-full'); sideMenu.classList.remove('translate-x-0');
+        rightSidebar.classList.add('translate-x-full'); rightSidebar.classList.remove('translate-x-0');
+        if (isOpening) {
+             if (sidebar.id === 'side-menu') { sidebar.classList.remove('-translate-x-full'); sidebar.classList.add('translate-x-0'); } 
+             else { sidebar.classList.remove('translate-x-full'); sidebar.classList.add('translate-x-0'); }
+        }
+    };
+    burgerMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(sideMenu); });
+    sidebarTabBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSidebar(rightSidebar); });
+    mainContainer.addEventListener('click', () => {
+        sideMenu.classList.add('-translate-x-full'); sideMenu.classList.remove('translate-x-0');
+        rightSidebar.classList.add('translate-x-full'); rightSidebar.classList.remove('translate-x-0');
+    });
+    document.getElementById('help-button').addEventListener('click', () => {
+        const helpCard = document.getElementById('help-card');
+        helpCard.classList.remove('hidden');
+        helpCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    document.getElementById('close-help-btn')?.addEventListener('click', () => document.getElementById('help-card').classList.add('hidden'));
+
+    // --- FILE UPLOAD UI ---
+    const fileInput = document.getElementById('file-upload');
+    const fileLabelText = document.getElementById('file-label-text');
+    const originalLabelHTML = fileLabelText.innerHTML;
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            fileLabelText.innerHTML = `<span class="font-semibold text-green-600 dark:text-green-400">✅ ${fileInput.files[0].name}</span>`;
+        } else { fileLabelText.innerHTML = originalLabelHTML; }
+    });
+
+    // --- FILTERING LOGIC ---
+    const filterItemTemplate = document.getElementById('filter-item-template');
+    
+    const junkOptionsHTML = `
+        <div class="space-y-2">
+            <div>
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Columns to Check</label>
+                <input type="text" class="junk-columns w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" placeholder='e.g., Name, Email or "ALL"'>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Junk Values to Remove</label>
+                <input type="text" class="junk-values w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" placeholder="e.g., N/A, ?, none">
+            </div>
+        </div>
+    `;
+
+    const updateFilterOptions = (selectElement) => {
+        const filterItem = selectElement.closest('.filter-item');
+        const optionsContainer = filterItem.querySelector('.filter-options');
+        const selectedType = selectElement.value;
+        optionsContainer.innerHTML = '';
+        if (selectedType === 'remove_junk') {
+            optionsContainer.innerHTML = junkOptionsHTML;
+            optionsContainer.classList.remove('hidden');
+        } else {
+            optionsContainer.classList.add('hidden');
+        }
+    };
+
+    const addFilter = (groupId, filterData = null) => {
+        const filterList = document.getElementById(`filter-list-${groupId}`);
+        const newFilter = filterItemTemplate.content.cloneNode(true);
+        const filterItemDiv = newFilter.querySelector('.filter-item');
+        const typeSelect = newFilter.querySelector('.filter-type');
+        
+        filterList.appendChild(newFilter);
+
+        if (filterData) {
+            typeSelect.value = filterData.type;
+            updateFilterOptions(typeSelect);
+            if (filterData.type === 'remove_junk') {
+                filterItemDiv.querySelector('.junk-columns').value = Array.isArray(filterData.columns) ? filterData.columns.join(', ') : filterData.columns;
+                filterItemDiv.querySelector('.junk-values').value = filterData.values.join(', ');
+            }
+        }
+    };
+
+    const updateCardUI = (groupId, data) => {
+        // Update stats grid
+        const statsGrid = document.getElementById(`stats-grid-${groupId}`);
+        statsGrid.querySelector('[data-stat-key="rows"]').textContent = data.rows.toLocaleString();
+        statsGrid.querySelector('[data-stat-key="columns"]').textContent = data.columns.toLocaleString();
+        statsGrid.querySelector('[data-stat-key="missing_values"]').textContent = data.missing_values.toLocaleString();
+        statsGrid.querySelector('[data-stat-key="duplicate_rows"]').textContent = data.duplicate_rows.toLocaleString();
+
+        // Update charts
+        const chartContainer = document.getElementById(`chart-container-${groupId}`);
+        chartContainer.dataset.stats = JSON.stringify(data.quality_stats);
+        initializeAllCharts(groupId);
+
+        // Update preview table
+        const previewContainer = document.getElementById(`preview-container-${groupId}`);
+        const table = previewContainer.querySelector('table');
+        const thead = table.querySelector('thead tr');
+        const tbody = table.querySelector('tbody');
+        
+        thead.innerHTML = data.preview.columns.map(col => `<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">${col}</th>`).join('');
+        tbody.innerHTML = data.preview.data.map(row => `
+            <tr class="bg-white dark:bg-slate-900 even:bg-slate-50 dark:even:bg-slate-800/50">
+                ${row.map(cell => `<td class="px-6 py-4 whitespace-nowrap align-top text-sm text-slate-700 dark:text-slate-300 font-mono">${cell}</td>`).join('')}
+            </tr>
+        `).join('');
+    };
+
+    const handleFilterAction = async (button, reset = false) => {
+        const card = button.closest('[data-group-id]');
+        const groupId = card.dataset.groupId;
+        const applyBtn = card.querySelector('.apply-filters-btn');
+        const resetBtn = card.querySelector('.reset-filters-btn');
+        
+        // Show loading state
+        button.disabled = true;
+        const originalText = button.textContent;
+        button.innerHTML = `<div class="loader"></div>`;
+
+        let filters = [];
+        if (!reset) {
+            card.querySelectorAll('.filter-item').forEach(item => {
+                const type = item.querySelector('.filter-type').value;
+                let filter = { type };
+                if (type === 'remove_junk') {
+                    const columnsRaw = item.querySelector('.junk-columns').value.trim();
+                    const valuesRaw = item.querySelector('.junk-values').value.trim();
+                    filter.columns = columnsRaw.toUpperCase() === 'ALL' ? 'ALL' : columnsRaw.split(',').map(v => v.trim()).filter(Boolean);
+                    filter.values = valuesRaw.split(',').map(v => v.trim()).filter(Boolean);
+                }
+                filters.push(filter);
             });
         }
+        
+        try {
+            const response = await fetch(`/apply-filters/${groupId}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filters })
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                updateCardUI(groupId, data);
+                showToast(reset ? 'Filters reset successfully.' : `Filters applied. ${data.rows.toLocaleString()} rows remaining.`, 'success');
+                if (reset) {
+                    card.querySelector(`#filter-list-${groupId}`).innerHTML = '';
+                }
+            } else {
+                showToast(`Error: ${data.message || 'An unknown error occurred.'}`, 'error');
+            }
+        } catch (error) {
+            showToast('A network error occurred while applying filters.', 'error');
+        } finally {
+            // Restore button state
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    };
+    
+    // --- EVENT LISTENERS (using delegation) ---
+    mainContainer.addEventListener('click', e => {
+        // Add Filter
+        if (e.target.matches('.add-filter-btn')) {
+            const card = e.target.closest('[data-group-id]');
+            addFilter(card.dataset.groupId);
+        }
+        // Remove Filter
+        if (e.target.closest('.remove-filter-btn')) {
+            e.target.closest('.filter-item').remove();
+        }
+        // Apply Filters
+        if (e.target.matches('.apply-filters-btn')) {
+            handleFilterAction(e.target);
+        }
+        // Reset Filters
+        if (e.target.matches('.reset-filters-btn')) {
+            handleFilterAction(e.target, true);
+        }
+    });
 
-        // --- DELETE GROUP LOGIC ---
-        function setupDeleteControls(button) {
-            button.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const groupId = button.dataset.groupId;
-                if (!confirm(`Are you sure you want to delete "${groupId.replace('_', ' ')}"?`)) return;
+    mainContainer.addEventListener('change', e => {
+        // Toggle filter options based on type
+        if (e.target.matches('.filter-type')) {
+            updateFilterOptions(e.target);
+        }
+    });
+
+    // --- OTHER CONTROLS (Sidebar, Rename, Delete) ---
+    document.querySelectorAll('.sidebar-item').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-group-btn') || e.target.classList.contains('rename-input')) return;
+            const card = document.getElementById(`results-card-${tab.dataset.groupId}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-4', 'dark:ring-offset-slate-900');
+                setTimeout(() => card.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-4', 'dark:ring-offset-slate-900'), 2000);
+            }
+        });
+        
+        tab.querySelector('.delete-group-btn')?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const groupId = tab.dataset.groupId;
+            const groupName = tab.querySelector('.sidebar-item-name')?.textContent || 'this group';
+            if (!confirm(`Are you sure you want to delete "${groupName}"?`)) return;
+            try {
+                const response = await fetch('/delete-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group_id: groupId }) });
+                if (response.ok) {
+                    tab.remove();
+                    document.getElementById(`results-card-${groupId}`)?.remove();
+                    showToast(`Group "${groupName}" deleted.`, 'success');
+                } else { 
+                    const data = await response.json();
+                    showToast(`Error: ${data.message}`, 'error');
+                }
+            } catch (error) { showToast('An unexpected network error occurred.', 'error'); }
+        });
+
+        tab.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const nameSpan = tab.querySelector('.sidebar-item-name');
+            const oldDisplayName = nameSpan.textContent;
+            const oldGroupId = tab.dataset.groupId;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'w-full bg-transparent border-b-2 border-indigo-500 focus:outline-none rename-input';
+            input.value = oldDisplayName;
+            nameSpan.parentElement.prepend(input);
+            nameSpan.classList.add('hidden');
+            input.focus();
+            input.select();
+            
+            const saveRename = async () => {
+                const newDisplayName = input.value.trim();
+                const cleanup = () => { input.remove(); nameSpan.classList.remove('hidden'); };
+
+                if (!newDisplayName || newDisplayName === oldDisplayName) { cleanup(); return; }
 
                 try {
-                    const response = await fetch('/delete-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group_id: groupId }) });
+                    const response = await fetch('/rename-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_id: oldGroupId, new_name: newDisplayName }) });
+                    const data = await response.json();
                     if (response.ok) {
-                        document.getElementById(`sidebar-tab-${groupId}`)?.remove();
-                        document.getElementById(`results-card-${groupId}`)?.remove();
-                        removeGroupState(groupId);
-                        localStorage.removeItem(`card-pos-results-card-${groupId}`);
-                    } else { const data = await response.json(); alert(`Error: ${data.message || 'Could not delete group.'}`); }
-                } catch (error) { alert('An unexpected network error occurred.'); }
-            });
-        }
-
-        // --- RENAME GROUP LOGIC ---
-        function setupRenameControls(tab) {
-            tab.addEventListener('contextmenu', e => {
-                e.preventDefault();
-                const contentDiv = tab.querySelector('.sidebar-item-content');
-                const nameSpan = tab.querySelector('.sidebar-item-name');
-                const oldDisplayName = nameSpan.textContent;
-                const oldGroupId = tab.dataset.groupId;
-                
-                const input = document.createElement('input');
-                input.type = 'text'; input.className = 'rename-input'; input.value = oldDisplayName;
-                contentDiv.style.display = 'none';
-                tab.appendChild(input); input.focus(); input.select();
-
-                const saveRename = async () => {
-                    const newDisplayName = input.value.trim();
-                    const cleanup = (displayName) => { nameSpan.textContent = displayName; input.remove(); contentDiv.style.display = 'flex'; };
-                    if (!newDisplayName || newDisplayName === oldDisplayName) { cleanup(oldDisplayName); return; }
-
-                    try {
-                        const response = await fetch('/rename-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_id: oldGroupId, new_name: newDisplayName }) });
-                        const data = await response.json();
-                        if (response.ok) {
-                            const newGroupId = data.new_id;
-                            tab.id = `sidebar-tab-${newGroupId}`; tab.dataset.groupId = newGroupId; tab.querySelector('.delete-group-btn').dataset.groupId = newGroupId;
-                            const card = document.getElementById(`results-card-${oldGroupId}`);
-                            if(card) {
-                                card.id = `results-card-${newGroupId}`; card.dataset.groupId = newGroupId;
-                                const title = document.getElementById(`results-title-${oldGroupId}`);
-                                title.id = `results-title-${newGroupId}`; title.textContent = `${data.new_display_name}: Preview`;
-                                document.getElementById(`dock-btn-${oldGroupId}`).id = `dock-btn-${newGroupId}`;
-                            }
-                            renameGroupState(oldGroupId, newGroupId);
-                            const pos = localStorage.getItem(`card-pos-results-card-${oldGroupId}`);
-                            if (pos) { localStorage.setItem(`card-pos-results-card-${newGroupId}`, pos); localStorage.removeItem(`card-pos-results-card-${oldGroupId}`); }
-                            cleanup(data.new_display_name);
-                        } else { alert(`Error: ${data.message}`); cleanup(oldDisplayName); }
-                    } catch (error) { alert('An unexpected error occurred.'); cleanup(oldDisplayName); }
-                };
-                input.addEventListener('blur', saveRename);
-                input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.remove(); contentDiv.style.display = 'flex'; } });
-            });
-        }
-
-        // --- DOCK/UNDOCK LOGIC ---
-        function setupGroupControls(card) {
-            const getGroupId = () => card.dataset.groupId;
-            const dockBtn = document.getElementById(`dock-btn-${getGroupId()}`);
-            if (!dockBtn) return;
-            dockBtn.addEventListener('click', () => { card.classList.add('is-fading-out'); setGroupState(getGroupId(), 'docked'); setTimeout(() => { card.classList.add('is-hidden'); card.classList.remove('is-fading-out'); document.getElementById(`sidebar-tab-${getGroupId()}`).classList.remove('is-hidden', 'is-fading-out'); }, 300); });
-        }
-        function setupTabControls(tab) {
-            const undockAction = (e) => {
-                const currentGroupId = tab.dataset.groupId;
-                const currentCard = document.getElementById(`results-card-${currentGroupId}`);
-                if (!currentCard) return;
-                tab.classList.add('is-fading-out');
-                setGroupState(currentGroupId, 'undocked');
-                setTimeout(() => tab.classList.add('is-hidden'), 300);
-                currentCard.classList.remove('is-hidden', 'is-fading-out');
-                currentCard.style.left = (e.clientX - (currentCard.offsetWidth / 2)) + 'px';
-                currentCard.style.top = (e.clientY - 20) + 'px';
-                currentCard.style.transform = 'none';
-                currentCard.querySelector('.drag-handle').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY }));
+                        const newGroupId = data.new_id;
+                        nameSpan.textContent = data.new_display_name;
+                        tab.id = `sidebar-tab-${newGroupId}`;
+                        tab.dataset.groupId = newGroupId;
+                        tab.querySelector('.delete-group-btn').dataset.groupId = newGroupId;
+                        const card = document.getElementById(`results-card-${oldGroupId}`);
+                        if (card) {
+                             // This is a comprehensive update of all IDs and data attributes
+                            card.id = `results-card-${newGroupId}`;
+                            card.dataset.groupId = newGroupId;
+                            card.querySelectorAll('[id*="' + oldGroupId + '"]').forEach(el => { el.id = el.id.replace(oldGroupId, newGroupId); });
+                            card.querySelectorAll('[data-group-id*="' + oldGroupId + '"]').forEach(el => { el.dataset.groupId = newGroupId; });
+                            card.querySelector(`#results-title-${newGroupId}`).textContent = `${data.new_display_name}: Analysis & Preview`;
+                            card.querySelectorAll('.export-button').forEach(link => { link.href = link.href.replace(`/export/${oldGroupId}/`, `/export/${newGroupId}/`); });
+                        }
+                        showToast(`Group renamed to "${data.new_display_name}"`, 'success');
+                        initializeAllCharts(newGroupId);
+                    } else { showToast(`Error: ${data.message}`, 'error'); }
+                } catch (error) { showToast('An unexpected error occurred.', 'error'); }
+                cleanup();
             };
-            tab.addEventListener('mousedown', (e) => { if (e.button === 0 && e.target.closest('.sidebar-item-content')) undockAction(e); });
-            tab.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.target.classList.contains('rename-input')) { e.preventDefault(); const rect = tab.getBoundingClientRect(); undockAction({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }); } });
-        }
-        
-        // --- DRAGGABLE & POSITIONING LOGIC ---
-        function makeDraggable(element) {
-            const dragHandle = element.querySelector('.drag-handle');
-            if (!dragHandle) return; 
-            let isDragging = false, startX, startY, startLeft, startTop;
-            const getStorageKey = () => element.id ? `card-pos-${element.id}` : null;
-            dragHandle.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isDragging = true; element.style.left = `${element.offsetLeft}px`; element.style.top = `${element.offsetTop}px`; element.style.transform = 'none'; startLeft = element.offsetLeft; startTop = element.offsetTop; startX = e.pageX; startY = e.pageY; element.classList.add('dragging'); document.body.style.userSelect = 'none'; });
-            document.addEventListener('mousemove', (e) => { if (!isDragging) return; e.preventDefault(); const deltaX = e.pageX - startX; const deltaY = e.pageY - startY; element.style.left = `${startLeft + deltaX}px`; element.style.top = `${startTop + deltaY}px`; });
-            document.addEventListener('mouseup', () => { if (!isDragging) return; isDragging = false; element.classList.remove('dragging'); document.body.style.userSelect = ''; const key = getStorageKey(); if (key) { localStorage.setItem(key, JSON.stringify({ top: element.style.top, left: element.style.left })); } });
-        }
-        function applySavedPositions() { document.querySelectorAll('.draggable').forEach(el => { if (!el.id) return; const savedPos = localStorage.getItem(`card-pos-${el.id}`); if (savedPos) { try { const { top, left } = JSON.parse(savedPos); if (top && left) { el.style.top = top; el.style.left = left; el.style.transform = 'none'; } } catch (e) { console.error("Could not parse saved card position", e); } } }); }
-        
-        // --- ONBOARDING LOGIC ---
-        function handleOnboarding() {
-            if (localStorage.getItem('onboardingComplete') === 'true') return;
-            const overlay = document.getElementById('onboarding-overlay');
-            const tooltip = document.getElementById('onboarding-tooltip');
-            if(!overlay || !tooltip) return;
-            const tooltipText = document.getElementById('onboarding-text');
-            const nextBtn = document.getElementById('onboarding-next-btn');
-            const skipBtn = document.getElementById('onboarding-skip-btn');
-            let currentStepIndex = 0, highlightedElement = null;
-            const steps = [ { element: '#upload-card .drag-handle', text: 'Welcome! This is a draggable bubble.', highlightClass: 'circle' }, { element: '#group-select', text: 'Use this dropdown to assign your file to a Group.' } ];
-            if (document.querySelector('.sidebar-item')) { steps.push({ element: '.sidebar-item', text: 'A tab appears here. Drag it to undock. Right-click to rename. Hover to see the delete button.' }); }
-            function showStep(index) { if (highlightedElement) highlightedElement.classList.remove('onboarding-highlight', 'circle'); const step = steps[index]; const target = document.querySelector(step.element); if (!target) { nextStep(); return; } highlightedElement = target; highlightedElement.classList.add('onboarding-highlight'); if (step.highlightClass) highlightedElement.classList.add(step.highlightClass); tooltipText.textContent = step.text; const targetRect = target.getBoundingClientRect(); tooltip.style.top = `${targetRect.bottom + 15}px`; tooltip.style.left = `${targetRect.left + (targetRect.width / 2) - (tooltip.offsetWidth / 2)}px`; if(parseInt(tooltip.style.left) < 10) tooltip.style.left = '10px'; if((parseInt(tooltip.style.left) + tooltip.offsetWidth) > window.innerWidth - 10) tooltip.style.left = `${window.innerWidth - tooltip.offsetWidth - 10}px`; nextBtn.textContent = (index === steps.length - 1) ? 'Done' : 'Next'; }
-            function nextStep() { currentStepIndex++; currentStepIndex < steps.length ? showStep(currentStepIndex) : endOnboarding(); }
-            function endOnboarding() { overlay.classList.add('is-hidden'); tooltip.classList.add('is-hidden'); if (highlightedElement) highlightedElement.classList.remove('onboarding-highlight', 'circle'); localStorage.setItem('onboardingComplete', 'true'); }
-            overlay.classList.remove('is-hidden'); tooltip.classList.remove('is-hidden'); nextBtn.addEventListener('click', nextStep); skipBtn.addEventListener('click', endOnboarding); showStep(0);
+            input.addEventListener('blur', saveRename);
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.remove(); nameSpan.classList.remove('hidden'); } });
+        });
+    });
+
+    document.querySelectorAll('.export-button').forEach(button => {
+        button.addEventListener('click', () => {
+            showToast('Your download will begin shortly...', 'info');
+        });
+    });
+
+    // --- INITIALIZATION ---
+    const initializeApp = () => {
+        applySavedTheme(); // This also calls initializeAllCharts
+        applySavedLanguage();
+    
+        if (flashedMessages) {
+            flashedMessages.forEach(flash => showToast(flash[1], flash[0]));
         }
 
-        // --- INITIALIZATION ---
-        applySavedPositions();
-        document.querySelectorAll('.draggable').forEach(makeDraggable);
-        document.querySelectorAll('.results-card').forEach(setupGroupControls);
-        document.querySelectorAll('.sidebar-item').forEach(tab => {
-            setupTabControls(tab);
-            setupRenameControls(tab);
-            const deleteBtn = tab.querySelector('.delete-group-btn');
-            if (deleteBtn) setupDeleteControls(deleteBtn);
-        });
-        initializeGroupStates();
-        handleOnboarding();
-    });
+        // Re-create filters from session on page load
+        for (const [groupId, groupData] of Object.entries(serverData.groups)) {
+            if (groupData.filters && groupData.filters.length > 0) {
+                groupData.filters.forEach(filter => addFilter(groupId, filter));
+            }
+        }
+    };
+
+    initializeApp();
+});
 </script>
 
 </body>
