@@ -1,58 +1,102 @@
+# 📊 DataSnap - Modern File Analyzer
 
-# 📊 Modern File Analyzer
+A sleek, browser-based file analysis and cleaning app built with **Flask**, **Pandas**, and a dynamic **Tailwind CSS** frontend.
 
-A sleek, browser-based file analysis app built with **Flask** and **Pandas**. Upload a CSV or Excel file and get instant insights—including cleaned name and phone number fields, missing value counts, duplicate detection, and a live data preview.
+Upload a CSV, TXT, or Excel file and get instant insights. The app automatically detects and formats common data types, provides rich metadata, and allows you to apply interactive cleaning filters with a live preview—all without leaving your browser.
+
+ <!-- It's highly recommended to add a screenshot of the app here! -->
 
 ---
 
 ## 🚀 Features
 
-- 📂 Upload CSV or Excel files
-- 🔍 Automatically detects and formats:
-  - Name columns (`First`, `Middle`, `Last`)
-  - Phone numbers (standard U.S. formats)
-- 📉 Displays metadata like:
-  - File size
-  - Number of rows & columns
-  - Missing & duplicate values
-  - Column names
-- 🖥️ Beautiful, responsive UI using modern HTML & CSS
-- ⚡ Fast in-browser preview of your dataset
+-   **Multi-Format Upload**: Supports CSV, TXT, XLSX, and XLS files.
+-   **Group Management**: Work with multiple datasets in a single session, organized into groups.
+-   **Automated Cleaning**:
+    -   Intelligently parses and splits name columns (e.g., `Last, First M.` → `First`, `Middle`, `Last`).
+    -   Standardizes phone numbers into a clean `(XXX) XXX-XXXX` format.
+    -   Converts date-like columns into a consistent `YYYY-MM-DD` format.
+-   **Interactive Filtering**:
+    -   Apply cleaning rules like **"Remove Duplicates"** or **"Remove Rows with Junk Values"**.
+    -   Build a stack of multiple filters and see the results instantly.
+    -   Your filter workflow is saved per-group in your session.
+-   **Rich Data Visualization**:
+    -   Key statistics dashboard (rows, columns, missing values, duplicates).
+    -   Doughnut charts for a quick overview of data quality.
+    -   Live data preview table that updates as you apply filters.
+-   **Modern UI**:
+    -   A beautiful, responsive interface built with **Tailwind CSS**.
+    -   Light and Dark mode support.
+    -   Interactive sidebars and toast notifications for a smooth user experience.
+-   **Export Cleaned Data**: Download your processed data as a CSV or XLSX file.
 
 ---
 
 ## 🛠️ Technologies Used
 
-- **Python 3**
-- **Flask**
-- **Pandas**
-- **HTML5 + CSS3 (no external frameworks)**
-- **Jinja2 Templating**
+-   **Backend**: Python 3, Flask, Pandas
+-   **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript, Chart.js
+-   **Core Libraries**: `chardet` (encoding detection), `openpyxl` (Excel), `xlsxwriter` (Excel export)
 
 ---
 
-## 🧪 How to Use
+## 🧪 How to Run Locally
 
-1. **Clone this repository:**
+Follow these steps to get the application running on your local machine.
 
-   ```bash
-   git clone https://github.com/OBrian-bit/DataSnap.git
-   cd DataSnap
+#### 1. **Prerequisites**
 
+-   Python 3.7 or newer
+-   `pip` (Python package installer)
 
-2. **Install dependencies:**
+#### 2. **Clone the Repository**
 
-   ```bash
-   pip install flask pandas openpyxl
-   ```
+```bash
+git clone https://github.com/OBrian-bit/DataSnap.git
+cd DataSnap
+```
 
-3. **Run the app:**
+#### 3. **Set Up a Virtual Environment (Recommended)**
 
-   ```bash
-   python app.py
-   ```
+A virtual environment keeps your project's dependencies isolated.
 
-4. **Open your browser** and go to `http://127.0.0.1:5000`
+-   **On macOS/Linux:**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+-   **On Windows:**
+    ```bash
+    python -m venv venv
+    .\venv\Scripts\activate
+    ```
+
+#### 4. **Install Dependencies**
+
+Install all the required Python libraries.
+
+```bash
+pip install Flask pandas openpyxl chardet xlsxwriter
+```
+
+#### 5. **Run the Application**
+
+Execute the main Python script to start the Flask server.
+
+```bash
+python app.py
+```
+
+The terminal will show output indicating that the server is running, usually with a message like:
+`* Running on http://127.0.0.1:5000`
+
+#### 6. **Open in Your Browser**
+
+Open your web browser and navigate to the local address:
+
+**[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+
+You should now see the DataSnap application interface, ready for you to upload a file!
 
 ---
 
@@ -60,29 +104,30 @@ A sleek, browser-based file analysis app built with **Flask** and **Pandas**. Up
 
 ```
 .
-├── app.py             # Main Flask backend
-├── index.html         # User interface with upload + results
+├── app.py             # Main Flask backend logic and API routes
+├── index.html         # The complete user interface (HTML, CSS, JS)
 ├── uploads/           # Temporary folder for uploaded files (auto-created)
+└── README.md          # You are here!
 ```
 
 ---
 
-## 🧼 Data Cleaning Logic
+## 🧼 Data Cleaning & Processing Logic
 
-* **Name Formatting:** Detects common name fields and splits them into First, Middle, and Last Name.
-* **Phone Numbers:** Cleans and formats 10- or 11-digit phone numbers with optional country code (e.g., `(123) 456-7890`).
-* **Statistics:** Computes dataset metadata like missing values, duplicates, and structural info.
+-   **Initial Processing**: On upload, the app automatically detects file encoding and applies standard formatting for names, phones, and dates.
+-   **Interactive Filtering**: The `/apply-filters` API endpoint receives filter rules from the frontend, re-processes the original dataset with these new rules, and returns updated statistics and a data preview.
+-   **State Management**: All uploaded files and their applied filters are stored in the user's server-side session, allowing for a persistent workflow.
+-   **Export**: The export functionality re-runs the entire cleaning pipeline (initial formatting + user filters) on the original file to ensure the final output is fully processed.
 
 ---
 
 ## 🔒 Security Note
 
-This project uses a demo secret key and processes files locally. For production use:
+This project is configured for local development and demonstration. For a production environment, please consider the following:
 
-* Replace the `SECRET_KEY` in `app.py`
-* Sanitize file inputs
-* Deploy with HTTPS and server hardening
-
----
-
+-   **Secret Key**: Replace the hardcoded `app.config['SECRET_KEY']` in `app.py` with a secure, environment-loaded variable.
+-   **File Sanitization**: Implement stricter checks on uploaded file contents and metadata.
+-   **Deployment**: Use a production-grade WSGI server (like Gunicorn or Waitress) instead of Flask's built-in development server.
+-   **HTTPS**: Configure your deployment to use HTTPS to encrypt traffic.
+```
 
