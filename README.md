@@ -1,133 +1,117 @@
-# 📊 DataSnap - Modern File Analyzer
 
-A sleek, browser-based file analysis and cleaning app built with **Flask**, **Pandas**, and a dynamic **Tailwind CSS** frontend.
+# DataSnap
 
-Upload a CSV, TXT, or Excel file and get instant insights. The app automatically detects and formats common data types, provides rich metadata, and allows you to apply interactive cleaning filters with a live preview—all without leaving your browser.
-
- <!-- It's highly recommended to add a screenshot of the app here! -->
+DataSnap is a Flask-based web application for uploading, analyzing, and cleaning CSV, TXT, and Excel files. It provides a powerful UI with live editing, data quality metrics, and features like anomaly detection, fuzzy matching, undo/redo, and filter recipes.
 
 ---
 
-## 🚀 Features
-
--   **Multi-Format Upload**: Supports CSV, TXT, XLSX, and XLS files.
--   **Group Management**: Work with multiple datasets in a single session, organized into groups.
--   **Automated Cleaning**:
-    -   Intelligently parses and splits name columns (e.g., `Last, First M.` → `First`, `Middle`, `Last`).
-    -   Standardizes phone numbers into a clean `(XXX) XXX-XXXX` format.
-    -   Converts date-like columns into a consistent `YYYY-MM-DD` format.
--   **Interactive Filtering**:
-    -   Apply cleaning rules like **"Remove Duplicates"** or **"Remove Rows with Junk Values"**.
-    -   Build a stack of multiple filters and see the results instantly.
-    -   Your filter workflow is saved per-group in your session.
--   **Rich Data Visualization**:
-    -   Key statistics dashboard (rows, columns, missing values, duplicates).
-    -   Doughnut charts for a quick overview of data quality.
-    -   Live data preview table that updates as you apply filters.
--   **Modern UI**:
-    -   A beautiful, responsive interface built with **Tailwind CSS**.
-    -   Light and Dark mode support.
-    -   Interactive sidebars and toast notifications for a smooth user experience.
--   **Export Cleaned Data**: Download your processed data as a CSV or XLSX file.
+## **Features**
+- Upload CSV, TXT, or Excel files and analyze them instantly.
+- Automatic name splitting, phone number formatting, and date standardization.
+- Data quality metrics including missing values, duplicates, and anomalies.
+- Interactive filters (remove duplicates, find & replace, fill missing).
+- Undo/redo for transformations.
+- Export cleaned data as CSV/XLSX.
+- Fuzzy matching and anomaly detection (Isolation Forest).
+- Profile reports (via `ydata-profiling`).
 
 ---
 
-## 🛠️ Technologies Used
-
--   **Backend**: Python 3, Flask, Pandas
--   **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript, Chart.js
--   **Core Libraries**: `chardet` (encoding detection), `openpyxl` (Excel), `xlsxwriter` (Excel export)
-
----
-
-## 🧪 How to Run Locally
-
-Follow these steps to get the application running on your local machine.
-
-#### 1. **Prerequisites**
-
--   Python 3.7 or newer
--   `pip` (Python package installer)
-
-#### 2. **Clone the Repository**
-
-```bash
-git clone https://github.com/OBrian-bit/DataSnap.git
-cd DataSnap
-```
-
-#### 3. **Set Up a Virtual Environment (Recommended)**
-
-A virtual environment keeps your project's dependencies isolated.
-
--   **On macOS/Linux:**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
--   **On Windows:**
-    ```bash
-    python -m venv venv
-    .\venv\Scripts\activate
-    ```
-
-#### 4. **Install Dependencies**
-
-Install all the required Python libraries.
-
-```bash
-pip install Flask pandas openpyxl chardet xlsxwriter
-```
-
-#### 5. **Run the Application**
-
-Execute the main Python script to start the Flask server.
-
-```bash
-python app.py
-```
-
-The terminal will show output indicating that the server is running, usually with a message like:
-`* Running on http://127.0.0.1:5000`
-
-#### 6. **Open in Your Browser**
-
-Open your web browser and navigate to the local address:
-
-**[http://127.0.0.1:5000](http://127.0.0.1:5000)**
-
-You should now see the DataSnap application interface, ready for you to upload a file!
+## **Requirements**
+- Python 3.9+
+- Flask
+- Pandas
+- Flask-SocketIO
+- TheFuzz (for fuzzy matching)
+- scikit-learn (for anomaly detection)
+- ydata-profiling (for data profiling)
+- chardet (for encoding detection)
 
 ---
 
-## 📁 File Structure
+## **Installation**
+
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/OBrian-bit/DataSnap.git
+   cd DataSnap
+
+
+2. **Create a Virtual Environment:**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate     # For Linux/Mac
+   venv\Scripts\activate        # For Windows
+   ```
+
+3. **Install Dependencies:**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+   If there is no `requirements.txt`, install manually:
+
+   ```bash
+   pip install flask pandas flask-socketio thefuzz scikit-learn ydata-profiling chardet
+   ```
+
+4. **Create Uploads Folder:**
+
+   ```bash
+   mkdir uploads
+   ```
+
+---
+
+## **Running the Application**
+
+1. **Start the Flask App:**
+
+   ```bash
+   python app.py
+   ```
+
+2. **Open in Browser:**
+   Go to [http://127.0.0.1:5000](http://127.0.0.1:5000).
+
+---
+
+## **File Structure**
 
 ```
 .
-├── app.py             # Main Flask backend logic and API routes
-├── index.html         # The complete user interface (HTML, CSS, JS)
-├── uploads/           # Temporary folder for uploaded files (auto-created)
-└── README.md          # You are here!
+├── app.py            # Flask backend
+├── templates/
+│   ├── index.html    # Main UI
+│   └── nav.html      # Navigation template
+└── uploads/          # Uploaded files
 ```
 
 ---
 
-## 🧼 Data Cleaning & Processing Logic
+## **Usage**
 
--   **Initial Processing**: On upload, the app automatically detects file encoding and applies standard formatting for names, phones, and dates.
--   **Interactive Filtering**: The `/apply-filters` API endpoint receives filter rules from the frontend, re-processes the original dataset with these new rules, and returns updated statistics and a data preview.
--   **State Management**: All uploaded files and their applied filters are stored in the user's server-side session, allowing for a persistent workflow.
--   **Export**: The export functionality re-runs the entire cleaning pipeline (initial formatting + user filters) on the original file to ensure the final output is fully processed.
+1. Select a group and upload your dataset (CSV/TXT/Excel).
+2. Analyze the dataset and view the data quality charts.
+3. Apply filters or transformations using the interactive UI.
+4. Export the cleaned dataset as CSV or Excel.
 
 ---
 
-## 🔒 Security Note
+## **License**
 
-This project is configured for local development and demonstration. For a production environment, please consider the following:
+This project is open-source and available under the MIT License.
 
--   **Secret Key**: Replace the hardcoded `app.config['SECRET_KEY']` in `app.py` with a secure, environment-loaded variable.
--   **File Sanitization**: Implement stricter checks on uploaded file contents and metadata.
--   **Deployment**: Use a production-grade WSGI server (like Gunicorn or Waitress) instead of Flask's built-in development server.
--   **HTTPS**: Configure your deployment to use HTTPS to encrypt traffic.
 ```
 
+---
+
+Would you like me to **create a `requirements.txt` file** for you based on your `app.py`?
+```
+
+---
+
+Would you like me to **generate a `requirements.txt` file** automatically for your `app.py` so you can commit it alongside this README?
+```
