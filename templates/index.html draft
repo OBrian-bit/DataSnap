@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataSnap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'sage-50':  '#f9faf8', 'sage-100': '#f3f6f2', 'sage-200': '#e6ede4', 'sage-300': '#d3ddd0', 'sage-400': '#b8c7b3', 'sage-500': '#9fb099', 'sage-600': '#7a9275', 'sage-700': '#5f735b', 'sage-800': '#4d5c4a', 'sage-900': '#404d3e',
+              'indigo-50':  '#f4f2fd', 'indigo-100': '#e8e3fc', 'indigo-200': '#d4c8f9', 'indigo-300': '#b8a5f3', 'indigo-400': '#9c82ed', 'indigo-500': '#7c5df1', 'indigo-600': '#5f46e8', 'indigo-700': '#4f38d0', 'indigo-800': '#4330ab', 'indigo-900': '#3a2d88',
+              'coral-400': '#ff8364', 'coral-500': '#ff6b4a',
+            },
+            fontFamily: {
+              sans: ['Inter var', 'system-ui', 'sans-serif'],
+              mono: ['"Fira Code"', 'ui-monospace', 'monospace'],
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Background is now on the canvas, not the body */
+        #canvas.dark { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        #canvas { background-color: #f8fafc; } /* light mode slate-50 */
+
+        .chart-shadow { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.07)); }
+        .dark .chart-shadow { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25)); }
+        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3b82f6; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .export-button { transition: transform .15s ease, box-shadow .15s ease; }
+        .export-button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(124, 93, 241, .45); }
+        td[contenteditable="true"] { outline: none; box-shadow: none; transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+        td[contenteditable="true"]:focus { background-color: rgba(99, 102, 241, 0.1); box-shadow: inset 0 0 0 2px #7c5df1; }
+        th { position: relative; }
+        th .col-ops-toggle-btn { opacity: 0; }
+        th:hover .col-ops-toggle-btn { opacity: 1; }
+        td.is-outlier { position: relative; background-color: rgba(239, 68, 68, 0.05); }
+        .dark td.is-outlier { background-color: rgba(239, 68, 68, 0.15); }
+        td.is-outlier::after { content: ''; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; background-color: #ef4444; border-radius: 50%; box-shadow: 0 0 3px rgba(239, 68, 68, 0.7); }
+        tr.is-anomaly { background-color: #fef3c7 !important; }
+        .dark tr.is-anomaly { background-color: #451a03 !important; }
+        [data-drag-handle] { cursor: grab; }
+        [data-drag-handle]:active { cursor: grabbing; }
+    </style>
+</head>
+<body class="bg-slate-200 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased min-h-screen">
+
+<!-- Header -->
+<header class="fixed top-0 left-0 right-0 z-40 h-16 bg-white/60 dark:bg-slate-900/60 backdrop-blur-lg border-b border-slate-200/40 dark:border-slate-700/40 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+  <h1 class="text-xl font-bold text-indigo-600 dark:text-indigo-400">DataSnap</h1>
+  <div class="flex items-center gap-2">
+      <button id="help-button" class="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors" title="Help"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></button>
+      <button id="burger-menu" class="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors" title="Settings"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2.4l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2.4l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+      <button id="sidebar-tab" class="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors" title="Groups"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg></button>
+  </div>
+</header>
+
+<div id="toast-container" class="fixed top-20 right-4 z-[100] w-full max-w-xs space-y-3"></div>
+
+<!-- Sidebars -->
+<aside id="side-menu" class="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-800 shadow-xl z-50 transform transition-transform ease-in-out duration-300 -translate-x-full">
+    <div class="p-6 pt-20"><h3 class="text-lg font-semibold mb-4">Settings</h3><ul class="space-y-4"><li class="flex items-center justify-between"><span class="font-medium">Dark Mode</span><label for="theme-toggle-switch" class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="theme-toggle-switch" class="sr-only peer"><div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></label></li></ul></div>
+</aside>
+<aside id="right-sidebar" class="fixed top-0 right-0 h-full w-80 bg-white dark:bg-slate-800 shadow-xl z-50 transform transition-transform ease-in-out duration-300 translate-x-full">
+    <div class="p-6 pt-20"><h3 class="text-lg font-semibold mb-4">Groups</h3><div class="space-y-3">{% if not groups %}<p class="text-sm text-center text-slate-500 dark:text-slate-400 mt-8">Your processed file groups will appear here.</p>{% endif %}{% for group_id, results in groups.items() %}<div class="sidebar-item relative group bg-white/40 dark:bg-slate-700/30 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:ring-2 hover:ring-indigo-400" id="sidebar-tab-{{ group_id }}" data-group-id="{{ group_id }}" title="Click to view. Right-click to rename." role="button" tabindex="0"><div><span class="font-semibold text-slate-800 dark:text-slate-100 sidebar-item-name">{{ results.display_name }}</span><small class="block text-xs text-slate-500 dark:text-slate-400 truncate sidebar-item-filename">{{ results.filename }}</small></div><button class="delete-group-btn absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white" data-group-id="{{ group_id }}" title="Delete Group"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>{% endfor %}</div></div>
+</aside>
+
+<!-- Main Content Canvas -->
+<div id="canvas" class="fixed top-0 left-0 w-full h-full overflow-auto">
+    <div id="content-wrapper" class="relative max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 pt-24">
+        <!-- Upload Card -->
+        <section class="bg-white/70 dark:bg-slate-800/70 rounded-2xl shadow-lg border" data-draggable="true">
+            <div class="p-6 text-center" data-drag-handle="true"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Upload & Analyze</h2><p class="mt-2 text-slate-600 dark:text-slate-400">Upload a CSV, TXT, or Excel file to begin.</p></div>
+            <form method="post" enctype="multipart/form-data" class="p-6 border-t space-y-6">
+                <label for="file-upload" class="file-drop-area flex flex-col items-center justify-center w-full h-56 border-2 border-dashed border-indigo-300 rounded-2xl cursor-pointer bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/40 dark:to-slate-700/40 hover:border-indigo-500 hover:from-indigo-50 dark:hover:from-indigo-900/20 transition-all duration-300">
+                    <div id="file-label-text" class="flex flex-col items-center justify-center pt-5 pb-6 text-slate-500 dark:text-slate-400">
+                        <svg class="w-8 h-8 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+                        <p class="mb-2 text-sm"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p class="text-xs">CSV, XLSX, XLS, or TXT</p>
+                    </div>
+                </label>
+                <input id="file-upload" type="file" name="file" accept=".csv,.xlsx,.xls,.txt" class="hidden" required>
+                
+                <div id="progress-container" class="hidden w-full max-w-sm mx-auto my-4 bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" class="text-center text-sm text-slate-500 dark:text-slate-400 -mt-4"></p>
+                
+                <div class="w-full max-w-sm mx-auto">
+                    <label for="group-select" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Assign to Group</label>
+                    <select name="group_id" id="group-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-indigo-500 sm:text-sm" required>
+                        <option value="group_1">Group 1</option><option value="group_2">Group 2</option><option value="group_3">Group 3</option><option value="group_4">Group 4</option><option value="group_5">Group 5</option>
+                    </select>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 h-10 py-2 px-6 disabled:opacity-50 disabled:cursor-wait">Analyze</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results Cards -->
+        {% for group_id, results in groups.items() %}
+        <section class="bg-white/70 dark:bg-slate-800/70 rounded-2xl shadow-lg border transition-all" id="results-card-{{ group_id }}" data-group-id="{{ group_id }}" data-draggable="true">
+            <div class="p-6 border-b" data-drag-handle="true"><h2 id="results-title-{{ group_id }}" class="text-2xl font-bold text-center text-slate-900 dark:text-white mb-6">{{ results.display_name }}: Analysis & Preview</h2></div>
+            <div class="p-6 space-y-8">
+                <div id="stats-grid-{{ group_id }}" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    {% for label, value, key in [('File Name', results.filename, 'filename'), ('File Size', results.filesize_kb~' KB', 'filesize'), ('Encoding', results.encoding, 'encoding'), ('Rows', results.rows, 'rows'), ('Columns', results.columns, 'columns'), ('Missing Cells', results.missing_values, 'missing_values'), ('Duplicate Rows', results.duplicate_rows, 'duplicate_rows')] %}
+                    <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl"><dt class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">{{ label }}</dt><dd class="mt-1 text-xl font-semibold text-slate-900 dark:text-white truncate" title="{{ value }}" data-stat-key="{{ key }}">{{ value }}</dd></div>
+                    {% endfor %}
+                </div>
+
+                {% if results.quality_stats %}
+                <div id="chart-container-{{ group_id }}" data-stats='{{ results.quality_stats | tojson | safe }}' data-original-rows='{{ results.rows }}' data-empty-rows='{{ results.empty_rows }}' class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t">
+                    <div class="text-center"><h3 class="text-sm font-bold uppercase tracking-wider mb-2">Row Quality</h3><div class="relative h-48 w-full"><canvas id="rows-chart-{{ group_id }}" class="chart-shadow"></canvas></div></div>
+                    <div class="text-center"><h3 class="text-sm font-bold uppercase tracking-wider mb-2">Cell Quality</h3><div class="relative h-48 w-full"><canvas id="cells-chart-{{ group_id }}" class="chart-shadow"></canvas></div></div>
+                    
+                    <div class="text-center md:col-span-2 pt-8">
+                      <h3 class="text-sm font-bold uppercase tracking-wider mb-2">Total Records Comparison</h3>
+                      <div class="relative h-64 w-full">
+                        <canvas id="bar-chart-{{ group_id }}" class="chart-shadow"></canvas>
+                      </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="pt-8 border-t">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                        <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data Preview (Live Editable)</h3>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <a href="/export-profile/{{ group_id }}" target="_blank" class="export-button inline-flex items-center justify-center rounded-md text-sm font-medium border h-9 px-4 py-2">Profile Report</a>
+                            <a href="/export/{{ group_id }}/csv" class="export-button inline-flex items-center justify-center rounded-md text-sm font-medium border h-9 px-4 py-2" download>Export CSV</a>
+                            <a href="/export/{{ group_id }}/xlsx" class="export-button inline-flex items-center justify-center rounded-md text-sm font-medium border h-9 px-4 py-2" download>Export XLSX</a>
+                        </div>
+                    </div>
+                    <div id="preview-container-{{ group_id }}">
+                        <div class="overflow-x-auto rounded-2xl border">
+                            <table class="min-w-full table-auto">
+                                <thead class="bg-slate-100 dark:bg-slate-800">
+                                    <!-- Table Header will be populated by JavaScript -->
+                                </thead>
+                                <tbody class="divide-y">
+                                    <!-- Table Body will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-8 border-t"><h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Applied Transformations</h3><ul id="transformations-list-{{ group_id }}" class="text-sm list-disc list-inside space-y-1 font-mono text-slate-600 dark:text-slate-400">{% for t in results.transformations %}<li>{{ t }}</li>{% endfor %}</ul></div>
+
+                <div class="pt-8 border-t">
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Data Cleaning Filters</h3>
+                    <div id="filter-list-{{ group_id }}" class="space-y-4 mb-4"></div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button class="add-filter-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 hover:bg-indigo-200">+ Add Filter</button>
+                        <button class="apply-filters-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400">Apply Filters</button>
+                        <button class="reset-filters-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-slate-200 text-slate-700 dark:bg-slate-600 hover:bg-slate-300">Reset</button>
+                        <div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div> <!-- separator -->
+                        <button class="undo-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-slate-200 text-slate-700 dark:bg-slate-600 hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed" title="Undo Last Action (Ctrl+Z)" disabled>Undo</button>
+                        <button class="redo-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-slate-200 text-slate-700 dark:bg-slate-600 hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed" title="Redo Last Action (Ctrl+Y)" disabled>Redo</button>
+                    </div>
+                </div>
+
+                <div class="pt-8 border-t">
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Anomaly Detection (Isolation Forest)</h3>
+                    <div class="flex items-center gap-4 p-4 bg-slate-100 dark:bg-slate-700/50 rounded-2xl border">
+                        <div class="flex-grow">
+                            <label for="anomaly-contamination-{{ group_id }}" class="block text-sm font-medium">Contamination: <span id="anomaly-value-{{ group_id }}" class="font-bold text-indigo-600 dark:text-indigo-400">0.05</span></label>
+                            <input id="anomaly-contamination-{{ group_id }}" type="range" min="0.01" max="0.5" step="0.01" value="0.05" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700">
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Expected proportion of anomalies in the dataset.</p>
+                        </div>
+                        <div class="flex flex-col gap-2 flex-shrink-0">
+                             <button class="run-anomaly-btn inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-coral-500 text-white hover:bg-coral-400">Find Anomalies</button>
+                             <button class="clear-anomaly-btn hidden inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-slate-200 text-slate-700 dark:bg-slate-600 hover:bg-slate-300">Clear</button>
+                        </div>
+                    </div>
+                    <p id="anomaly-log-{{ group_id }}" class="text-sm mt-2 font-mono text-slate-600 dark:text-slate-400"></p>
+                </div>
+
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Zoom Controls -->
+<div id="zoom-controls" class="fixed bottom-4 right-4 z-50 flex items-center gap-1 p-1 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200/80 dark:border-slate-700/80">
+    <button id="zoom-out-btn" title="Zoom Out" class="h-8 w-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+    <button id="zoom-reset-btn" title="Reset Zoom" class="h-8 w-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors text-xs font-bold">100%</button>
+    <button id="zoom-in-btn" title="Zoom In" class="h-8 w-8 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+</div>
+
+<!-- Templates -->
+<template id="filter-item-template">
+    <div class="filter-item flex items-start gap-3 bg-slate-100 dark:bg-slate-700/50 p-4 rounded-2xl border">
+        <div class="flex-grow space-y-3"><select class="filter-type block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm sm:text-sm"><option value="remove_duplicates">Remove Duplicate Rows</option><option value="remove_junk">Remove Rows with Junk Values</option><option value="fill_missing">Fill Missing Values (Impute)</option><option value="find_replace">Regex & Bulk Find-Replace</option></select><div class="filter-options hidden space-y-3"></div></div>
+        <button class="remove-filter-btn h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-md text-slate-500 hover:text-red-600" title="Remove Filter"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    </div>
+</template>
+<template id="column-ops-template">
+    <div class="col-ops-container absolute top-0 right-0 h-full flex items-center pr-2">
+        <button class="col-ops-toggle-btn p-1 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-opacity" title="Column Operations">
+            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM10 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM11.5 15.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" /></svg>
+        </button>
+        <div class="col-ops-dropdown absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-2xl ring-1 ring-black ring-opacity-5 z-20 hidden">
+            <div class="py-1" role="menu" aria-orientation="vertical">
+                <a href="#" class="col-op-btn block px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" role="menuitem" data-op="trim">Trim Whitespace</a>
+                <a href="#" class="col-op-btn block px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" role="menuitem" data-op="lower">Convert to Lowercase</a>
+                <a href="#" class="col-op-btn block px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" role="menuitem" data-op="title">Convert to Title Case</a>
+                <div class="border-t border-slate-200 dark:border-slate-700 my-1"></div>
+                <a href="#" class="col-op-btn block px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" role="menuitem" data-op="fuzzy_merge">Fuzzy Match & Merge...</a>
+            </div>
+        </div>
+    </div>
+</template>
+<div id="fuzzy-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex flex-col bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md m-4">
+        <div class="p-5 border-b border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-medium text-slate-900 dark:text-white" id="modal-title">Fuzzy Match & Merge</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Group similar values in column: <strong id="fuzzy-col-name"></strong></p>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label for="fuzzy-threshold" class="block text-sm font-medium">Similarity Threshold: <span id="fuzzy-threshold-value" class="font-bold text-indigo-600 dark:text-indigo-400">90</span>%</label>
+                <input id="fuzzy-threshold" type="range" min="50" max="100" value="90" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700">
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Higher values require a closer match. 90% is a good start.</p>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 rounded-b-xl">
+            <button id="fuzzy-cancel-btn" type="button" class="px-4 py-2 text-sm font-medium rounded-md border">Cancel</button>
+            <button id="fuzzy-apply-btn" type="button" class="px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Apply Merge</button>
+        </div>
+    </div>
+</div>
+
+<!-- Data passed from Server -->
+{% set server_data = {'groups': groups} %}
+<script id="server-data" type="application/json">{{ server_data | tojson | safe }}</script>
+{% if get_flashed_messages(with_categories=true) %}<script id="flash-data" type="application/json">{{ get_flashed_messages(with_categories=true)|tojson|safe }}</script>{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const htmlEl = document.documentElement;
+    const canvas = document.getElementById('canvas');
+    const contentWrapper = document.getElementById('content-wrapper');
+    const serverData = JSON.parse(document.getElementById('server-data').textContent);
+    const flashedMessages = document.getElementById("flash-data") ? JSON.parse(document.getElementById("flash-data").textContent) : [];
+    let chartInstances = {};
+    let currentScale = 1.0; // Shared state for zoom and drag
+
+    // --- SOCKET.IO INITIALIZATION ---
+    const socket = io();
+    socket.on('connect', () => console.log('Socket.IO Connected!'));
+    socket.on('disconnect', () => showToast('Lost connection. Reconnecting...', 'error'));
+
+    socket.on('cell_updated', (data) => {
+        const { group_id, row_index, col_name, new_value } = data;
+        const cell = document.querySelector(`#results-card-${group_id} [data-row-index="${row_index}"][data-col-name="${col_name}"]`);
+        if (cell && document.activeElement !== cell) {
+            cell.textContent = new_value;
+            cell.classList.add('bg-indigo-100', 'dark:bg-indigo-900/50', 'transition-colors', 'duration-1000');
+            setTimeout(() => cell.classList.remove('bg-indigo-100', 'dark:bg-indigo-900/50'), 1000);
+        }
+    });
+
+    socket.on('data_reset', (data) => {
+        updateCardUI(data.group_id, data);
+        showToast(`Data for '${data.display_name || data.group_id.replace(/_/g, ' ')}' was updated.`, 'info');
+    });
+
+    // --- CORE UI FUNCTIONS ---
+    const showToast = (message, type = 'info') => {
+        const toastContainer = document.getElementById('toast-container');
+        const icons = { success: `<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`, error: `<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>`, info: `<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>`};
+        const colors = { success: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300', error: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300', info: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' };
+        const toast = document.createElement('div');
+        toast.className = `flex items-start p-4 rounded-xl shadow-xl transition-all duration-300 ${colors[type]}`;
+        toast.innerHTML = `<div class="flex-shrink-0">${icons[type]}</div><div class="ml-3 flex-1 text-sm font-medium">${message}</div><button class="ml-4 -mx-1.5 -my-1.5 p-1.5 rounded-lg inline-flex h-8 w-8 opacity-70 hover:opacity-100"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
+        const removeToast = () => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); };
+        toast.querySelector('button').addEventListener('click', removeToast);
+        setTimeout(removeToast, 5000);
+        toastContainer.appendChild(toast);
+    };
+    
+    const themeSwitch = document.getElementById('theme-toggle-switch');
+    const applySavedTheme = () => {
+        const isDark = localStorage.getItem('themePreference') !== 'light';
+        themeSwitch.checked = isDark;
+        htmlEl.classList.toggle('dark', isDark);
+        canvas.classList.toggle('dark', isDark); // Toggle canvas background class
+        initializeAllCharts();
+    };
+    themeSwitch.addEventListener('change', () => {
+        localStorage.setItem('themePreference', themeSwitch.checked ? 'dark' : 'light');
+        applySavedTheme();
+    });
+
+    const getChartColors = () => ({ textColor: htmlEl.classList.contains('dark') ? 'rgb(203 213 225)' : 'rgb(71 85 105)', success: '#2dd4bf', highlight: '#3b82f6', danger: '#f43f5e', secondary: '#94a3b8', warning: '#f59e0b' });
+    const renderDoughnutChart = (canvasId, data, labels, colors) => {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+        chartInstances[canvasId] = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: true, position: 'bottom', labels: { color: getChartColors().textColor } } } } });
+    };
+
+    const renderBarChart = (canvasId, labels, data) => {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
+      if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+
+      const chartColors = getChartColors();
+      const barColors = [ chartColors.secondary, chartColors.success, chartColors.danger, chartColors.warning ];
+
+      chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Records',
+            data,
+            backgroundColor: barColors,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { 
+                beginAtZero: true, 
+                ticks: { 
+                    callback: v => v.toLocaleString(),
+                    color: chartColors.textColor
+                },
+                grid: { color: htmlEl.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }
+            },
+            x: {
+                ticks: { color: chartColors.textColor },
+                grid: { display: false }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => ctx.parsed.y.toLocaleString() + ' records' }
+            }
+          }
+        }
+      });
+    };
+    
+    const initializeAllCharts = (groupId = null) => {
+        const init = (container) => {
+            const stats = JSON.parse(container.dataset.stats);
+            const gId = container.id.replace('chart-container-', '');
+            if (stats.total_rows > 0) renderDoughnutChart(`rows-chart-${gId}`, [stats.unique_rows, stats.duplicate_rows], ['Unique', 'Duplicate'], [getChartColors().success, getChartColors().danger]);
+            if (stats.total_cells > 0) renderDoughnutChart(`cells-chart-${gId}`, [stats.valid_cells, stats.missing_cells], ['Valid', 'Missing'], [getChartColors().highlight, getChartColors().secondary]);
+            
+            const originalRows = parseInt(container.dataset.originalRows, 10);
+            const emptyRows = parseInt(container.dataset.emptyRows, 10);
+            renderBarChart(
+              `bar-chart-${gId}`,
+              ['Raw Dataset','Cleaned Dataset','Total Duplicates','Other Garbage'],
+              [originalRows, stats.total_rows, stats.duplicate_rows, emptyRows]
+            );
+        };
+        if (groupId) {
+            const container = document.getElementById(`chart-container-${groupId}`);
+            if (container) init(container);
+        } else {
+            document.querySelectorAll('[id^="chart-container-"]').forEach(init);
+        }
+    };
+    
+    // --- Centralized UI Update Function ---
+    const updateCardUI = (groupId, data) => {
+        const card = document.getElementById(`results-card-${groupId}`);
+        if (!card || !data) return;
+        
+        card.querySelector('[data-stat-key="rows"]').textContent = data.rows.toLocaleString();
+        card.querySelector('[data-stat-key="columns"]').textContent = data.columns.toLocaleString();
+        card.querySelector('[data-stat-key="missing_values"]').textContent = data.missing_values.toLocaleString();
+        card.querySelector('[data-stat-key="duplicate_rows"]').textContent = data.duplicate_rows.toLocaleString();
+        
+        const chartContainer = card.querySelector(`#chart-container-${groupId}`);
+        if (chartContainer) {
+            chartContainer.dataset.stats = JSON.stringify(data.quality_stats);
+            initializeAllCharts(groupId);
+
+            renderBarChart(
+              `bar-chart-${groupId}`,
+              ['Raw Dataset','Cleaned Dataset','Total Duplicates','Other Garbage'],
+              [data.original_rows, data.rows, data.duplicate_rows, data.empty_rows]
+            );
+        }
+        
+        const transformationsList = card.querySelector(`#transformations-list-${groupId}`);
+        if(transformationsList) {
+            transformationsList.innerHTML = data.transformations.map(t => `<li>${t}</li>`).join('');
+        }
+
+        const undoBtn = card.querySelector('.undo-btn');
+        const redoBtn = card.querySelector('.redo-btn');
+        if (undoBtn) undoBtn.disabled = data.undo_count === 0;
+        if (redoBtn) redoBtn.disabled = data.redo_count === 0;
+        
+        const previewContainer = card.querySelector(`#preview-container-${groupId}`);
+        const table = previewContainer.querySelector('table');
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+
+        if (!data.preview || !data.preview.columns) {
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td class="p-4 text-center text-slate-500">No preview data available.</td></tr>';
+            return;
+        }
+
+        thead.innerHTML = `<tr>${data.preview.columns.map(col => `<th scope="col" class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider" data-col-name="${col.replace(/"/g, '"')}"><span class="col-name-display">${col}</span></th>`).join('')}</tr>`;
+        
+        const outlierSet = new Set((data.outlier_info || []).map(([rIdx, colName]) => `${rIdx},${colName}`));
+        const escapeHtml = u => u.toString()
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+
+        tbody.innerHTML = data.preview.data.map((row, rIdx) => {
+            const rowHtml = row.map((cell, cIdx) => {
+                const colName = data.preview.columns[cIdx] || '';
+                const isOutlier = outlierSet.has(`${rIdx},${colName}`);
+                const outlierClass = isOutlier ? 'is-outlier' : '';
+                const outlierTitle = isOutlier ? 'title="Potential outlier based on IQR method"' : '';
+                const cellValue = cell === null || cell === undefined ? '' : escapeHtml(cell);
+
+                return `<td class="px-6 py-4 whitespace-nowrap align-top text-sm font-mono ${outlierClass}" 
+                            contenteditable="true" 
+                            data-row-index="${rIdx}" 
+                            data-col-name="${escapeHtml(colName)}"
+                            ${outlierTitle}>${cellValue}</td>`;
+            }).join('');
+            return `<tr class="bg-white dark:bg-slate-900 even:bg-slate-50 dark:even:bg-slate-800/50">${rowHtml}</tr>`;
+        }).join('');
+        
+        initializeColumnControls(groupId);
+        clearAnomalyHighlights(groupId);
+    };
+
+    // --- Sidebars, Modals, and Other Controls ---
+    const sideMenu = document.getElementById('side-menu');
+    const rightSidebar = document.getElementById('right-sidebar');
+    const burgerMenuBtn = document.getElementById('burger-menu');
+    const sidebarTabBtn = document.getElementById('sidebar-tab');
+
+    burgerMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        rightSidebar.classList.add('translate-x-full');
+        sideMenu.classList.toggle('-translate-x-full');
+    });
+
+    sidebarTabBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sideMenu.classList.add('-translate-x-full');
+        rightSidebar.classList.toggle('translate-x-full');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!sideMenu.classList.contains('-translate-x-full') && !sideMenu.contains(e.target)) {
+            sideMenu.classList.add('-translate-x-full');
+        }
+        if (!rightSidebar.classList.contains('translate-x-full') && !rightSidebar.contains(e.target)) {
+            rightSidebar.classList.add('translate-x-full');
+        }
+    });
+
+    const colOpsTemplate = document.getElementById('column-ops-template');
+    const fuzzyModal = document.getElementById('fuzzy-modal');
+    
+    const initializeColumnControls = (groupId) => {
+        const card = document.getElementById(`results-card-${groupId}`);
+        if (!card) return;
+        card.querySelectorAll('th').forEach(th => {
+            if (th.querySelector('.col-ops-container')) th.querySelector('.col-ops-container').remove();
+            const controls = colOpsTemplate.content.cloneNode(true);
+            th.appendChild(controls);
+        });
+    };
+
+    const handleColumnOperation = async (groupId, columnName, operationType, params = {}) => {
+        const th = document.querySelector(`#results-card-${groupId} th[data-col-name="${columnName}"]`);
+        const loader = document.createElement('div');
+        loader.className = 'loader absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
+        th.querySelector('.col-name-display').style.opacity = '0.2';
+        th.appendChild(loader);
+
+        try {
+            const response = await fetch(`/apply-column-operation/${groupId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ column_name: columnName, operation_type: operationType, params })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Server error');
+            showToast(result.message, 'success');
+        } catch (error) { showToast(`Error: ${error.message}`, 'error'); } 
+        finally {
+            th.querySelector('.col-name-display').style.opacity = '1';
+            loader.remove();
+        }
+    };
+    
+    const fuzzyThresholdInput = document.getElementById('fuzzy-threshold');
+    const fuzzyThresholdValue = document.getElementById('fuzzy-threshold-value');
+    fuzzyThresholdInput.addEventListener('input', () => { fuzzyThresholdValue.textContent = fuzzyThresholdInput.value; });
+    const showFuzzyModal = (groupId, columnName) => {
+        fuzzyModal.dataset.groupId = groupId;
+        fuzzyModal.dataset.columnName = columnName;
+        document.getElementById('fuzzy-col-name').textContent = columnName;
+        fuzzyModal.classList.remove('hidden'); fuzzyModal.classList.add('flex');
+    };
+    const hideFuzzyModal = () => { fuzzyModal.classList.add('hidden'); fuzzyModal.classList.remove('flex'); };
+    document.getElementById('fuzzy-cancel-btn').addEventListener('click', hideFuzzyModal);
+    document.getElementById('fuzzy-apply-btn').addEventListener('click', () => {
+        const { groupId, columnName } = fuzzyModal.dataset;
+        const threshold = fuzzyThresholdInput.value;
+        handleColumnOperation(groupId, columnName, 'fuzzy_merge', { threshold });
+        hideFuzzyModal();
+    });
+
+    // --- FILTER & ANOMALY LOGIC ---
+    const filterItemTemplate = document.getElementById('filter-item-template');
+    const junkOptionsHTML = `<div class="space-y-2"><div><label class="block text-xs font-medium mb-1">Columns to Check</label><input type="text" class="junk-columns w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm sm:text-sm p-2" placeholder='e.g., Name, Email or "ALL"'></div><div><label class="block text-xs font-medium mb-1">Junk Values (comma-separated)</label><input type="text" class="junk-values w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm sm:text-sm p-2" placeholder="e.g., N/A, ?, none"></div></div>`;
+    const fillMissingOptionsHTML = `<div class="space-y-3"><div><label class="block text-xs font-medium mb-1">Imputation Method</label><select class="impute-method block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm sm:text-sm"><option value="mean">Mean (numeric only)</option><option value="median">Median (numeric only)</option><option value="mode">Mode (most frequent)</option></select></div><div><label class="block text-xs font-medium mb-1">Columns to Fill</label><input type="text" class="impute-columns w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm sm:text-sm p-2" placeholder='e.g., Age, Score or "ALL", "ALL_NUMERIC"'></div></div>`;
+    const findReplaceOptionsHTML = `<div class="space-y-3"><div><label class="block text-xs font-medium mb-1">Columns to Replace</label><input type="text" class="fr-columns w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm sm:text-sm p-2" placeholder='e.g., Name, Email or "ALL"'></div><div><label class="block text-xs font-medium mb-1">Find Pattern</label><input type="text" class="fr-find w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm sm:text-sm p-2" placeholder="What to find"></div><div><label class="block text-xs font-medium mb-1">Replace With</label><input type="text" class="fr-replace w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm sm:text-sm p-2" placeholder="Replacement text (can be empty)"></div><div class="flex items-center gap-2 pt-1"><input type="checkbox" class="fr-regex h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900"><label class="text-sm text-slate-600 dark:text-slate-400">Use Regular Expression</label></div></div>`;
+
+    const updateFilterOptions = (select) => {
+        const optionsContainer = select.closest('.filter-item').querySelector('.filter-options');
+        let content = '';
+        if (select.value === 'remove_junk') content = junkOptionsHTML;
+        else if (select.value === 'fill_missing') content = fillMissingOptionsHTML;
+        else if (select.value === 'find_replace') content = findReplaceOptionsHTML;
+        optionsContainer.innerHTML = content;
+        optionsContainer.classList.toggle('hidden', content === '');
+    };
+    const addFilter = (groupId, data = null) => {
+        const list = document.getElementById(`filter-list-${groupId}`);
+        const newFilter = filterItemTemplate.content.cloneNode(true);
+        const select = newFilter.querySelector('.filter-type');
+        list.appendChild(newFilter);
+        if (data) {
+            select.value = data.type;
+            updateFilterOptions(select);
+            if (data.type === 'remove_junk') {
+                const item = list.lastElementChild;
+                item.querySelector('.junk-columns').value = Array.isArray(data.columns) ? data.columns.join(', ') : data.columns;
+                item.querySelector('.junk-values').value = data.values.join(', ');
+            } else if (data.type === 'fill_missing') {
+                const item = list.lastElementChild;
+                item.querySelector('.impute-method').value = data.method;
+                item.querySelector('.impute-columns').value = Array.isArray(data.columns) ? data.columns.join(', ') : data.columns;
+            } else if (data.type === 'find_replace') {
+                const item = list.lastElementChild;
+                item.querySelector('.fr-columns').value = Array.isArray(data.columns) ? data.columns.join(', ') : data.columns;
+                item.querySelector('.fr-find').value = data.find || '';
+                item.querySelector('.fr-replace').value = data.replace || '';
+                item.querySelector('.fr-regex').checked = data.is_regex || false;
+            }
+        }
+    };
+    const handleFilterAction = async (button, reset = false) => {
+        const card = button.closest('[data-group-id]');
+        const groupId = card.dataset.groupId;
+        const originalText = button.textContent;
+        button.disabled = true; button.innerHTML = `<div class="loader"></div>`;
+        
+        let filters = reset ? [] : Array.from(card.querySelectorAll('.filter-item')).map(item => {
+            const type = item.querySelector('.filter-type').value;
+            let filter = { type };
+            if (type === 'remove_junk') {
+                const columnsRaw = item.querySelector('.junk-columns').value.trim();
+                filter.columns = columnsRaw.toUpperCase() === 'ALL' ? 'ALL' : columnsRaw.split(',').map(v => v.trim()).filter(Boolean);
+                filter.values = item.querySelector('.junk-values').value.trim().split(',').map(v => v.trim()).filter(Boolean);
+            } else if (type === 'fill_missing') {
+                filter.method = item.querySelector('.impute-method').value;
+                const columnsRaw = item.querySelector('.impute-columns').value.trim();
+                filter.columns = /^(ALL|ALL_NUMERIC)$/i.test(columnsRaw) ? columnsRaw.toUpperCase() : columnsRaw.split(',').map(v => v.trim()).filter(Boolean);
+            } else if (type === 'find_replace') {
+                const columnsRaw = item.querySelector('.fr-columns').value.trim();
+                filter.columns = columnsRaw.toUpperCase() === 'ALL' ? 'ALL' : columnsRaw.split(',').map(v => v.trim()).filter(Boolean);
+                filter.find = item.querySelector('.fr-find').value;
+                filter.replace = item.querySelector('.fr-replace').value;
+                filter.is_regex = item.querySelector('.fr-regex').checked;
+            }
+            return filter;
+        });
+        
+        try {
+            const response = await fetch(`/apply-filters/${groupId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
+            if (!response.ok) throw new Error((await response.json()).message || 'Server error');
+            if (reset) card.querySelector(`#filter-list-${groupId}`).innerHTML = '';
+        } catch (error) { showToast(`Error: ${error.message}`, 'error'); } 
+        finally { button.disabled = false; button.innerHTML = originalText; }
+    };
+
+    const handleUndoRedo = async (button, action) => {
+        const groupId = button.closest('[data-group-id]').dataset.groupId;
+        button.disabled = true;
+        
+        try {
+            const response = await fetch(`/${action}/${groupId}`, { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) {
+                showToast(result.message || 'Action failed.', 'error');
+                button.disabled = false;
+            }
+        } catch (error) {
+            showToast(`Network error: ${error.message}`, 'error');
+            button.disabled = false;
+        }
+    };
+    
+    const handleAnomalyDetection = async (button) => {
+        const card = button.closest('[data-group-id]');
+        const groupId = card.dataset.groupId;
+        const contamination = card.querySelector(`#anomaly-contamination-${groupId}`).value;
+        const logEl = card.querySelector(`#anomaly-log-${groupId}`);
+        const clearBtn = card.querySelector('.clear-anomaly-btn');
+        
+        button.disabled = true; button.innerHTML = `<div class="loader"></div>`;
+        logEl.textContent = 'Running analysis...';
+        clearAnomalyHighlights(groupId);
+
+        try {
+            const response = await fetch(`/run-anomaly-detection/${groupId}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contamination }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+
+            logEl.textContent = `Found ${result.count} potentially anomalous rows (highlighted).`;
+            const tableRows = card.querySelectorAll(`#preview-container-${groupId} tbody tr`);
+            result.anomaly_indices.forEach(idx => {
+                if (tableRows[idx]) {
+                    tableRows[idx].classList.add('is-anomaly');
+                    tableRows[idx].title = 'Identified as an anomaly by Isolation Forest.';
+                }
+            });
+            clearBtn.classList.remove('hidden');
+        } catch (error) { logEl.textContent = `Error: ${error.message}`; } 
+        finally { button.disabled = false; button.textContent = 'Find Anomalies'; }
+    };
+
+    const clearAnomalyHighlights = (groupId) => {
+        const card = document.getElementById(`results-card-${groupId}`);
+        if (!card) return;
+        card.querySelectorAll('tr.is-anomaly').forEach(row => { row.classList.remove('is-anomaly'); row.title = ''; });
+        card.querySelector(`#anomaly-log-${groupId}`).textContent = '';
+        card.querySelector('.clear-anomaly-btn')?.classList.add('hidden');
+    };
+
+    // --- EVENT DELEGATION ---
+    document.body.addEventListener('click', e => {
+        const targetInContent = contentWrapper.contains(e.target);
+
+        if (targetInContent) {
+            const addBtn = e.target.closest('.add-filter-btn'), removeBtn = e.target.closest('.remove-filter-btn'), applyBtn = e.target.closest('.apply-filters-btn'), resetBtn = e.target.closest('.reset-filters-btn');
+            if (addBtn) addFilter(addBtn.closest('[data-group-id]').dataset.groupId);
+            if (removeBtn) removeBtn.closest('.filter-item').remove();
+            if (applyBtn) handleFilterAction(applyBtn);
+            if (resetBtn) handleFilterAction(resetBtn, true);
+
+            const undoBtn = e.target.closest('.undo-btn');
+            if (undoBtn) handleUndoRedo(undoBtn, 'undo');
+            const redoBtn = e.target.closest('.redo-btn');
+            if (redoBtn) handleUndoRedo(redoBtn, 'redo');
+
+            const runAnomalyBtn = e.target.closest('.run-anomaly-btn');
+            if (runAnomalyBtn) handleAnomalyDetection(runAnomalyBtn);
+            const clearAnomalyBtn = e.target.closest('.clear-anomaly-btn');
+            if (clearAnomalyBtn) clearAnomalyHighlights(clearAnomalyBtn.closest('[data-group-id]').dataset.groupId);
+
+            const toggleBtn = e.target.closest('.col-ops-toggle-btn');
+            if (toggleBtn) { e.preventDefault(); toggleBtn.nextElementSibling.classList.toggle('hidden'); }
+            
+            const opBtn = e.target.closest('.col-op-btn');
+            if (opBtn) {
+                e.preventDefault();
+                const card = opBtn.closest('[data-group-id]');
+                const th = opBtn.closest('th');
+                opBtn.closest('.col-ops-dropdown').classList.add('hidden');
+                if (opBtn.dataset.op === 'fuzzy_merge') {
+                    showFuzzyModal(card.dataset.groupId, th.dataset.colName);
+                } else {
+                    handleColumnOperation(card.dataset.groupId, th.dataset.colName, opBtn.dataset.op);
+                }
+            }
+        }
+        if (!e.target.closest('.col-ops-container')) {
+             document.querySelectorAll('.col-ops-dropdown').forEach(d => d.classList.add('hidden'));
+        }
+    });
+
+    contentWrapper.addEventListener('input', e => {
+        if (e.target.matches('[id^="anomaly-contamination-"]')) {
+            const groupId = e.target.id.replace('anomaly-contamination-', '');
+            document.getElementById(`anomaly-value-${groupId}`).textContent = e.target.value;
+        }
+    });
+    contentWrapper.addEventListener('change', e => { if (e.target.matches('.filter-type')) updateFilterOptions(e.target); });
+    contentWrapper.addEventListener('blur', (e) => {
+        if (e.target.matches('td[contenteditable="true"]')) {
+            const cell = e.target;
+            const card = cell.closest('[data-group-id]');
+            if (!card) return;
+            socket.emit('edit_cell', { group_id: card.dataset.groupId, row_index: parseInt(cell.dataset.rowIndex, 10), col_name: cell.dataset.colName, new_value: cell.textContent });
+        }
+    }, true);
+
+    document.querySelectorAll('.sidebar-item').forEach(tab => {
+        tab.addEventListener('click', (e) => { 
+            const card = document.getElementById(`results-card-${tab.dataset.groupId}`);
+             if (card && getComputedStyle(card).position !== 'absolute') {
+                 canvas.scrollTo({ top: card.offsetTop - 100, behavior: 'smooth' });
+            }
+        });
+        tab.querySelector('.delete-group-btn')?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm(`Delete group?`)) return;
+            try {
+                const res = await fetch('/delete-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group_id: tab.dataset.groupId }) });
+                if (res.ok) { 
+                    document.getElementById(`results-card-${tab.dataset.groupId}`)?.remove(); 
+                    tab.remove();
+                    showToast(`Group deleted.`, 'success'); 
+                } 
+                else { showToast(`Error: ${(await res.json()).message}`, 'error'); }
+            } catch (err) { showToast('Network error.', 'error'); }
+        });
+        tab.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const nameSpan = tab.querySelector('.sidebar-item-name'), oldName = nameSpan.textContent, oldId = tab.dataset.groupId;
+            const input = document.createElement('input');
+            input.type = 'text', input.className = 'w-full bg-transparent border-b-2 border-indigo-500 focus:outline-none', input.value = oldName;
+            nameSpan.parentElement.prepend(input); nameSpan.classList.add('hidden'); input.focus(); input.select();
+            const saveRename = async () => {
+                const newName = input.value.trim();
+                input.remove(); nameSpan.classList.remove('hidden');
+                if (!newName || newName === oldName) return;
+                try {
+                    const res = await fetch('/rename-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_id: oldId, new_name: newName }) });
+                    const data = await res.json();
+                    if (res.ok) {
+                        const newId = data.new_id;
+                        nameSpan.textContent = data.new_display_name;
+                        tab.id = `sidebar-tab-${newId}`; tab.dataset.groupId = newId;
+                        tab.querySelector('.delete-group-btn').dataset.groupId = newId;
+                        const card = document.getElementById(`results-card-${oldId}`);
+                        if (card) {
+                            card.id = `results-card-${newId}`; card.dataset.groupId = newId;
+                            card.querySelectorAll(`[id*="${oldId}"]`).forEach(el => el.id = el.id.replace(oldId, newId));
+                            card.querySelectorAll(`[data-group-id*="${oldId}"]`).forEach(el => el.dataset.groupId = newId);
+                            card.querySelector(`#results-title-${newId}`).textContent = `${data.new_display_name}: Analysis & Preview`;
+                            card.querySelectorAll('a[href*="/export/"]').forEach(link => link.href = link.href.replace(oldId, newId));
+                        }
+                        showToast(`Group renamed.`, 'success');
+                    } else { showToast(`Error: ${data.message}`, 'error'); }
+                } catch (err) { showToast('Network error.', 'error'); }
+            };
+            input.addEventListener('blur', saveRename);
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.remove(); nameSpan.classList.remove('hidden'); } });
+        });
+    });
+
+    // --- ASYNCHRONOUS UPLOAD LOGIC ---
+    const uploadForm = document.querySelector('form[method="post"]');
+    if (uploadForm) {
+        const analyzeButton = uploadForm.querySelector('button[type="submit"]');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const originalButtonText = analyzeButton.innerHTML;
+            analyzeButton.disabled = true;
+            analyzeButton.innerHTML = `<div class="loader"></div>`;
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressText.textContent = 'Uploading file...';
+
+            const formData = new FormData(uploadForm);
+            
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    progressText.textContent = 'Analysis complete. Reloading page...';
+                    progressBar.style.width = '100%';
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    const error = await response.json();
+                    showToast(error.message || 'An unknown error occurred during upload.', 'error');
+                    analyzeButton.disabled = false;
+                    analyzeButton.innerHTML = originalButtonText;
+                    progressContainer.classList.add('hidden');
+                    progressText.textContent = '';
+                }
+            } catch (error) {
+                showToast(`Network error: ${error.message}`, 'error');
+                analyzeButton.disabled = false;
+                analyzeButton.innerHTML = originalButtonText;
+                progressContainer.classList.add('hidden');
+                progressText.textContent = '';
+            }
+        });
+    }
+
+    // --- INITIALIZATION ---
+    const initializeApp = () => {
+        applySavedTheme();
+        flashedMessages.forEach(flash => showToast(flash[1], flash[0]));
+        
+        for (const [groupId, groupData] of Object.entries(serverData.groups)) {
+            updateCardUI(groupId, groupData);
+            if (groupData.filters?.length > 0) {
+                groupData.filters.forEach(filter => addFilter(groupId, filter));
+            }
+        }
+        initZoomControls();
+        initDraggableCards();
+    };
+
+    // --- Zoom Controls Logic ---
+    const initZoomControls = () => {
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomResetBtn = document.getElementById('zoom-reset-btn');
+        
+        if (!contentWrapper || !zoomInBtn || !zoomOutBtn || !zoomResetBtn) return;
+        
+        const zoomStep = 0.1;
+        const minScale = 0.5;
+        const maxScale = 1.5;
+
+        contentWrapper.style.transformOrigin = 'top left';
+        contentWrapper.style.transition = 'transform 0.2s ease-out';
+
+        const applyZoom = () => {
+            contentWrapper.style.transform = `scale(${currentScale})`;
+            zoomResetBtn.textContent = `${Math.round(currentScale * 100)}%`;
+            zoomOutBtn.disabled = currentScale <= minScale;
+            zoomInBtn.disabled = currentScale >= maxScale;
+        };
+
+        zoomInBtn.addEventListener('click', () => {
+            if (currentScale < maxScale) {
+                currentScale = Math.min(maxScale, currentScale + zoomStep);
+                applyZoom();
+            }
+        });
+
+        zoomOutBtn.addEventListener('click', () => {
+            if (currentScale > minScale) {
+                currentScale = Math.max(minScale, currentScale - zoomStep);
+                applyZoom();
+            }
+        });
+
+        zoomResetBtn.addEventListener('click', () => {
+            currentScale = 1.0;
+            applyZoom();
+        });
+    };
+    
+    // --- Draggable Cards Logic ---
+    const initDraggableCards = () => {
+        let activeDraggable = null;
+        let initialX, initialY;
+        let initialLeft, initialTop;
+
+        const startDrag = (e) => {
+            const handle = e.target.closest('[data-drag-handle]');
+            if (!handle || !contentWrapper) return;
+            
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.isContentEditable) return;
+            e.preventDefault();
+
+            activeDraggable = handle.closest('[data-draggable]');
+            if (!activeDraggable) return;
+
+            contentWrapper.querySelectorAll('[data-draggable]').forEach(el => el.style.zIndex = '10');
+            activeDraggable.style.zIndex = '50';
+
+            const contentRect = contentWrapper.getBoundingClientRect();
+
+            if (getComputedStyle(activeDraggable).position !== 'absolute') {
+                const rect = activeDraggable.getBoundingClientRect();
+                // Calculate position relative to the (potentially scaled) content wrapper
+                const currentLeft = rect.left - contentRect.left;
+                const currentTop = rect.top - contentRect.top;
+                
+                activeDraggable.style.position = 'absolute';
+                activeDraggable.style.width = `${rect.width / currentScale}px`; // Un-scale width
+                activeDraggable.style.left = `${currentLeft / currentScale}px`; // Un-scale left
+                activeDraggable.style.top = `${currentTop / currentScale}px`;  // Un-scale top
+            }
+
+            initialLeft = parseFloat(activeDraggable.style.left) || 0;
+            initialTop = parseFloat(activeDraggable.style.top) || 0;
+            
+            initialX = e.clientX;
+            initialY = e.clientY;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', stopDrag);
+        };
+
+        const dragMove = (e) => {
+            if (!activeDraggable) return;
+
+            const dx = e.clientX - initialX;
+            const dy = e.clientY - initialY;
+            
+            // Adjust movement by the current scale to make it feel 1:1
+            activeDraggable.style.left = `${initialLeft + (dx / currentScale)}px`;
+            activeDraggable.style.top = `${initialTop + (dy / currentScale)}px`;
+        };
+
+        const stopDrag = () => {
+            activeDraggable = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', stopDrag);
+        };
+
+        document.addEventListener('mousedown', startDrag);
+    };
+
+    initializeApp();
+});
+</script>
+
+</body>
+</html>
