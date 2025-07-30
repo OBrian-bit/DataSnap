@@ -1,0 +1,41 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# 📦 Virtual environments
+venv/
+.env
+.venv/
+
+# 🔥 Flask-specific junk
+instance/
+*.log
+*.db
+*.sqlite
+uploads/
+*.pkl
+
+# 📂 Editor / IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# 🧪 Notebook garbage
+.ipynb_checkpoints/
+
+# 💻 OS files
+.DS_Store
+Thumbs.db
+
+# ⚙️ Compiled / dist builds
+*.egg-info/
+build/
+dist/
+
+# 🧪 Test files or drafts (optional)
+*draft.html
+test_*.py
