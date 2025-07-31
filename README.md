@@ -104,14 +104,6 @@ DataSnap is a Flask-based web application for uploading, analyzing, and cleaning
 
 This project is open-source and available under the MIT License.
 
-```
 
----
 
-Would you like me to **create a `requirements.txt` file** for you based on your `app.py`?
-```
 
----
-
-Would you like me to **generate a `requirements.txt` file** automatically for your `app.py` so you can commit it alongside this README?
-```
