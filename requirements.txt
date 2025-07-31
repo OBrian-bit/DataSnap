@@ -1,0 +1,13 @@
+
+Flask
+pandas
+chardet
+flask-socketio
+thefuzz
+python-Levenshtein
+scikit-learn
+ydata-profiling
+Pillow
+openpyxl
+XlsxWriter
+setuptools
